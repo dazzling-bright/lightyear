@@ -23,7 +23,6 @@ import Footer from "./components/Footer";
 import AIChatWidget from "./components/AIChatWidget";
 import ConsultationDrawer from "./components/ConsultationDrawer";
 
-// ── Lazy-loaded pages (each page loads only when navigated to) ────────────────
 const Home = lazy(() => import("./pages/Home"));
 const WhoWeAre = lazy(() => import("./pages/WhoWeAre"));
 const Experience = lazy(() => import("./pages/Experience"));
@@ -33,14 +32,13 @@ const Contact = lazy(() => import("./pages/Contact"));
 const LoginPage = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+// Calculators are PUBLIC — accessible without login
 const CalculatorsPage = lazy(() => import("./pages/Calculators"));
 const EngineerCalculations = lazy(() => import("./pages/EngineerCalculations"));
 
-// ── Shared layout context type ────────────────────────────────────────────────
 type LayoutContext = { onOpenConsultation: () => void };
 export const useConsultation = () => useOutletContext<LayoutContext>();
 
-// ── Page-level loading spinner ────────────────────────────────────────────────
 function PageLoader() {
   return (
     <Flex minH="60vh" align="center" justify="center">
@@ -49,11 +47,9 @@ function PageLoader() {
   );
 }
 
-// ── Route error boundary ──────────────────────────────────────────────────────
 function ErrorBoundary() {
   const error = useRouteError();
   const is404 = isRouteErrorResponse(error) && error.status === 404;
-
   return (
     <Flex
       minH="60vh"
@@ -86,23 +82,18 @@ function ErrorBoundary() {
   );
 }
 
-// ── Root layout — Navbar + Footer + Drawers wrap every page ──────────────────
 function RootLayout() {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const location = useLocation();
   const hideFooter = location.pathname === "/login";
-
   return (
     <Box bg="stellar.bg" minH="100vh">
       <Navbar onOpenConsultation={onOpen} />
-
-      {/* Suspense handles lazy-loaded page chunks */}
       <Suspense fallback={<PageLoader />}>
         <Outlet
           context={{ onOpenConsultation: onOpen } satisfies LayoutContext}
         />
       </Suspense>
-
       {!hideFooter && <Footer />}
       <ConsultationDrawer isOpen={isOpen} onClose={onClose} />
       <AIChatWidget />
@@ -110,19 +101,13 @@ function RootLayout() {
   );
 }
 
-// ── Auth guard — redirects unauthenticated / unauthorised users ───────────────
-function ProtectedRoute({ adminOnly = false }: { adminOnly?: boolean }) {
-  const { user, profile, loading } = useAuth();
-
+function ProtectedRoute() {
+  const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
-  if (adminOnly && profile?.role === "homeowner")
-    return <Navigate to="/dashboard" replace />;
-
   return <Outlet />;
 }
 
-// ── Dashboard dispatcher — admin/engineer vs homeowner ───────────────────────
 function DashboardRoute() {
   const { profile, loading } = useAuth();
   if (loading) return <PageLoader />;
@@ -131,13 +116,11 @@ function DashboardRoute() {
   return <Dashboard />;
 }
 
-// ── Home wrapper — gets consultation opener from layout context ───────────────
 function HomeWrapper() {
   const { onOpenConsultation } = useConsultation();
   return <Home onOpenConsultation={onOpenConsultation} />;
 }
 
-// ── Router definition ─────────────────────────────────────────────────────────
 const router = createBrowserRouter([
   {
     element: <RootLayout />,
@@ -175,22 +158,23 @@ const router = createBrowserRouter([
         element: <LoginPage />,
         errorElement: <ErrorBoundary />,
       },
-
-      // Protected
+      // Calculators — PUBLIC, no auth required
+      {
+        path: "/calculators",
+        element: <CalculatorsPage />,
+        errorElement: <ErrorBoundary />,
+      },
+      {
+        path: "/engineer-calculators",
+        element: <EngineerCalculations />,
+        errorElement: <ErrorBoundary />,
+      },
+      // Protected — dashboard only
       {
         element: <ProtectedRoute />,
         errorElement: <ErrorBoundary />,
-        children: [
-          { path: "/dashboard", element: <DashboardRoute /> },
-          { path: "/dashboard/calculators", element: <CalculatorsPage /> },
-          {
-            path: "/dashboard/engineer-calcs",
-            element: <EngineerCalculations />,
-          },
-        ],
+        children: [{ path: "/dashboard", element: <DashboardRoute /> }],
       },
-
-      // Catch-all
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

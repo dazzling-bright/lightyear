@@ -30,7 +30,8 @@ const NAV_LINKS = [
   { label: "Who We Are", href: "/who-we-are" },
   { label: "Experience", href: "/experience" },
   { label: "Services", href: "/services" },
-  { label: "Projects", href: "/project-studies" }, // shortened to avoid wrap
+  { label: "Projects", href: "/project-studies" },
+  { label: "Calculators", href: "/calculators" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -113,7 +114,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
   const { colorMode } = useColorMode();
   const isDark = colorMode === "dark";
 
-  // Colour values that adapt to mode
   const navBg = useColorModeValue(
     scrolled ? "rgba(255,255,255,0.97)" : "rgba(255,255,255,0.88)",
     scrolled ? "rgba(8,12,20,0.97)" : "rgba(8,12,20,0.78)",
@@ -123,7 +123,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
     scrolled ? "#1E2E4A" : "rgba(200,150,62,0.12)",
   );
   const linkColor = useColorModeValue("#4B5563", "#8899AA");
-  const linkActive = "brand.400";
   const logoColor = useColorModeValue("#111827", "#EEF2F7");
   const drawerBg = useColorModeValue("white", "#0F1929");
   const drawerBd = useColorModeValue("#E2E8F0", "#1E2E4A");
@@ -137,7 +136,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Active check: exact for home, prefix for others
   const isActive = (href: string) =>
     href === "/"
       ? location.pathname === "/"
@@ -150,7 +148,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
 
   return (
     <>
-      {/* ── Fixed bar ───────────────────────────────────────────────── */}
       <Box
         as="nav"
         position="fixed"
@@ -171,7 +168,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
         }
         transition="background 0.35s, border-color 0.35s, box-shadow 0.35s"
       >
-        {/* Gold accent line */}
         <Box
           h="2px"
           bgGradient="linear(to-r, transparent, brand.500, transparent)"
@@ -181,16 +177,15 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
         <Flex
           maxW="1440px"
           mx="auto"
-          px={{ base: 4, md: 6, xl: 12 }}
+          px={{ base: 4, md: 6, xl: 10 }}
           h="68px"
           align="center"
           justify="space-between"
-          gap={6}
+          gap={4}
         >
-          {/* Logo */}
+          {/* ── Logo: Lightyear Engineering ─────────────────────────── */}
           <Link to="/" style={{ flexShrink: 0 }}>
             <Flex align="center" gap={3} role="group">
-              {/* Diamond mark */}
               <Box w="32px" h="32px" position="relative" flexShrink={0}>
                 <Box
                   position="absolute"
@@ -214,8 +209,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   borderRadius="1px"
                 />
               </Box>
-
-              {/* Brand name — hide on very small screens */}
               <Box display={{ base: "none", sm: "block" }}>
                 <Text
                   fontFamily="heading"
@@ -225,7 +218,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   lineHeight="1.15"
                   whiteSpace="nowrap"
                 >
-                  Lightyear Stellar
+                  Lightyear Engineering
                 </Text>
                 <Text
                   fontFamily="mono"
@@ -233,15 +226,14 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   color="brand.500"
                   letterSpacing="0.2em"
                   textTransform="uppercase"
-                  lineHeight="1"
                 >
-                  Solutions
+                  Consultancy Ltd
                 </Text>
               </Box>
             </Flex>
           </Link>
 
-          {/* ── Desktop nav links (xl breakpoint = 1280px) ─────────── */}
+          {/* ── Desktop links (xl+) ──────────────────────────────────── */}
           <HStack
             as="ul"
             listStyleType="none"
@@ -261,21 +253,21 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   py={2}
                   fontSize="xs"
                   fontWeight="600"
-                  letterSpacing="0.1em"
+                  letterSpacing="0.08em"
                   textTransform="uppercase"
                   whiteSpace="nowrap"
-                  color={isActive(link.href) ? linkActive : linkColor}
-                  position="relative"
+                  color={isActive(link.href) ? "brand.400" : linkColor}
                   transition="color 0.2s"
                   _hover={{
                     color: isDark ? "#EEF2F7" : "#111827",
                     textDecoration: "none",
                   }}
+                  position="relative"
                   sx={{
                     "&::after": {
                       content: '""',
                       position: "absolute",
-                      bottom: "0px",
+                      bottom: "0",
                       left: "12px",
                       right: "12px",
                       height: "1.5px",
@@ -295,14 +287,13 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
             ))}
           </HStack>
 
-          {/* ── Right actions (xl+) ─────────────────────────────────── */}
+          {/* ── Right actions ─────────────────────────────────────────── */}
           <HStack
             spacing={2}
             display={{ base: "none", xl: "flex" }}
             flexShrink={0}
           >
             <ColorModeToggle />
-
             <Button
               variant="ghost_light"
               size="sm"
@@ -310,9 +301,8 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
               whiteSpace="nowrap"
               onClick={onOpenConsultation}
             >
-              Schedule Call
+              Book Consultation
             </Button>
-
             {user ? (
               <Menu>
                 <MenuButton
@@ -348,7 +338,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   </MenuItem>
                   <MenuItem
                     as={Link}
-                    to="/dashboard/calculators"
+                    to="/calculators"
                     bg="transparent"
                     fontSize="sm"
                     color={menuText}
@@ -360,7 +350,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   </MenuItem>
                   <MenuItem
                     as={Link}
-                    to="/dashboard/engineer-calcs"
+                    to="/engineer-calculators"
                     bg="transparent"
                     fontSize="sm"
                     color={menuText}
@@ -398,15 +388,15 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
             )}
           </HStack>
 
-          {/* ── Mobile/tablet right side (below xl) ─────────────────── */}
+          {/* ── Mobile toggle ─────────────────────────────────────────── */}
           <HStack spacing={2} display={{ base: "flex", xl: "none" }}>
             <ColorModeToggle />
             <IconButton
               aria-label={isOpen ? "Close menu" : "Open menu"}
               icon={isOpen ? <XIcon /> : <HamburgerIcon />}
               variant="ghost"
-              color={isDark ? "#EEF2F7" : "#374151"}
               size="sm"
+              color={isDark ? "#EEF2F7" : "#374151"}
               _hover={{ bg: "rgba(200,150,62,0.1)", color: "brand.400" }}
               onClick={isOpen ? onClose : onOpen}
             />
@@ -414,7 +404,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
         </Flex>
       </Box>
 
-      {/* ── Mobile drawer ───────────────────────────────────────────── */}
+      {/* Mobile drawer */}
       <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="xs">
         <DrawerOverlay backdropFilter="blur(8px)" bg="rgba(8,12,20,0.65)" />
         <DrawerContent
@@ -424,7 +414,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
         >
           <DrawerBody p={0}>
             <Box pt="82px" pb={8} px={6}>
-              {/* Signed-in pill */}
               {user && (
                 <Box
                   mb={5}
@@ -459,8 +448,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   </Text>
                 </Box>
               )}
-
-              {/* Links */}
               <VStack align="stretch" spacing={0}>
                 {NAV_LINKS.map((link) => (
                   <ChakraLink
@@ -501,9 +488,44 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                     </Text>
                   </ChakraLink>
                 ))}
+                {/* Engineer calcs — extra mobile link */}
+                <ChakraLink
+                  as={Link}
+                  to="/engineer-calculators"
+                  onClick={onClose}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  py={3.5}
+                  px={4}
+                  fontSize="sm"
+                  fontWeight="600"
+                  letterSpacing="0.08em"
+                  textTransform="uppercase"
+                  whiteSpace="nowrap"
+                  color={
+                    isActive("/engineer-calculators")
+                      ? "brand.400"
+                      : isDark
+                        ? "#C8D6E8"
+                        : "#374151"
+                  }
+                  borderBottom="1px solid"
+                  borderColor={drawerBd}
+                  transition="all 0.2s"
+                  _hover={{
+                    color: "brand.400",
+                    pl: "24px",
+                    bg: "rgba(200,150,62,0.04)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Engineer Calcs
+                  <Text as="span" opacity={0.3} fontSize="xs">
+                    →
+                  </Text>
+                </ChakraLink>
               </VStack>
-
-              {/* CTA block */}
               <Box mt={6} p={4} border="1px solid" borderColor={drawerBd}>
                 <VStack spacing={2}>
                   <Button
@@ -515,7 +537,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                       onOpenConsultation();
                     }}
                   >
-                    Schedule Consultation
+                    Book Consultation
                   </Button>
                   {user ? (
                     <>
@@ -558,7 +580,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
         </DrawerContent>
       </Drawer>
 
-      {/* Height spacer so page content clears the fixed bar */}
       <Box h="70px" />
     </>
   );
