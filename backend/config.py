@@ -1,23 +1,21 @@
-from pydantic_settings import BaseSettings
+import os
 from functools import lru_cache
+from dotenv import load_dotenv
 
-class Settings(BaseSettings):
-    # Supabase
-    supabase_url: str
-    supabase_service_key: str          # service_role key (never exposed to frontend)
-    supabase_anon_key: str             # anon key (safe to expose)
+load_dotenv()
 
-    # Groq AI (free tier: groq.com)
-    groq_api_key: str
+class Settings:
+    supabase_url:         str = os.environ["SUPABASE_URL"]
+    supabase_service_key: str = os.environ["SUPABASE_SERVICE_KEY"]
+    supabase_anon_key:    str = os.environ["SUPABASE_ANON_KEY"]
+    groq_api_key:         str = os.environ["GROQ_API_KEY"]
 
-    # App
-    app_name: str = "Lightyear Stellar Solutions API"
-    frontend_url: str = "https://lightyear.onrender.com"
-    environment: str = "production"
+    # Optional — email via Resend (free: resend.com)
+    resend_api_key: str = os.getenv("RESEND_API_KEY", "")
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    app_name:     str = os.getenv("APP_NAME",     "Lightyear Stellar Solutions API")
+    frontend_url: str = os.getenv("FRONTEND_URL", "https://lightyear.onrender.com")
+    environment:  str = os.getenv("ENVIRONMENT",  "production")
 
 @lru_cache()
 def get_settings() -> Settings:

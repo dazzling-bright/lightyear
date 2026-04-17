@@ -160,6 +160,7 @@ export default function Dashboard() {
   const quickLinks = [
     { label: '🧮 Material Calculators', href: '/dashboard/calculators' },
     { label: '🎥 How-To Videos', href: '/dashboard/resources' },
+    { label: '⚙️ Engineer Calculations', href: '/dashboard/engineer-calcs' },
     { label: '📞 Contact Your Engineer', href: '/contact' },
   ]
 

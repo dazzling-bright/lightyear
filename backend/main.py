@@ -5,7 +5,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from config import get_settings
 from supabase_client import get_supabase
-from routers import consultations, projects, ai_chat, calculators, users
+from routers import consultations, projects, ai_chat, calculators, users, email
 from datetime import datetime, timedelta
 import logging
 
@@ -87,6 +87,7 @@ app.include_router(projects.router)
 app.include_router(ai_chat.router)
 app.include_router(calculators.router)
 app.include_router(users.router)
+app.include_router(email.router)
 
 @app.get("/", tags=["Health"])
 async def root():

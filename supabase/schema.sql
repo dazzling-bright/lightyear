@@ -1,6 +1,6 @@
 -- ============================================================
 -- LIGHTYEAR STELLAR SOLUTIONS — SUPABASE SCHEMA
-
+-- Safe to re-run: all drops use IF EXISTS
 -- ============================================================
 
 -- ── 1. PROFILES ─────────────────────────────────────────────
@@ -228,5 +228,5 @@ create policy "chat_messages_own" on public.ai_chat_messages
   );
 
 -- ── 9. MAKE YOURSELF ADMIN ──────────────────────────────────
-
-update public.profiles set role = 'admin' where email = 'brightudoette@gmail.com';
+-- After registering, run this (replace with your email):
+-- update public.profiles set role = 'admin' where email = 'your@email.com';

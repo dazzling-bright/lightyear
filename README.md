@@ -1,211 +1,263 @@
-# Lightyear Stellar Solutions — Full-Stack Web App
+# Lightyear Engineering Solutions — Full-Stack Platform
 
-> Construction management platform built with React + FastAPI + Supabase
+---
+
+## Overview
+
+Lightyear Engineering is a comprehensive construction and engineering management
+web application that unifies design, construction, and consultancy services under one
+smart platform. Built on core values of **integrity, honesty, dependability,
+compliance, and safety**.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
+| Layer    | Technology                                              |
+| -------- | ------------------------------------------------------- |
 | Frontend | React 18, TypeScript, Vite, Chakra UI v2, Framer Motion |
-| Backend | FastAPI (Python), APScheduler |
-| Database | Supabase (PostgreSQL + Auth + RLS) |
-| AI | Groq (free tier) — `llama-3.1-8b-instant` |
-| Hosting | Render (free tier) |
+| Routing  | React Router v6 (createBrowserRouter)                   |
+| Backend  | FastAPI (Python 3.11+), APScheduler                     |
+| Database | Supabase (PostgreSQL + Auth + RLS)                      |
+| AI       | Groq                                                    |
+| Email    | Resend                                                  |
+| Hosting  | Render                                                  |
 
 ---
 
 ## Features
 
-- **Public site** — Home, Who We Are, Experience, Services, Project Studies, Contact
-- **Consultation Drawer** — 3-step form reachable from every CTA button
-- **Stella AI** — Floating chat widget powered by Groq (free)
-- **Auth** — Supabase email/password with role selection (homeowner / engineer / admin)
-- **Client Dashboard** — Project tracking, progress bars, daily updates, payment status
-- **Admin Dashboard** — Full project + consultation management, revenue summary
-- **Calculators** — Concrete, blocks, paint, roofing (₦ cost estimates)
-- **Daily Reports** — Automated daily project update at 08:00 WAT via APScheduler
+### Public Site
+
+- Marketing pages: Home, Who We Are, Experience, Services, Project Studies, Contact
+- Dark / Light mode toggle (Chakra UI `useColorMode`)
+- Stella AI floating chat widget (Groq-powered, construction-focused)
+- Consultation drawer — 3-step form with email confirmation + admin notification
+- Contact links: WhatsApp (+234 703 208 2725), LinkedIn, Phone
+
+### Authentication
+
+- Supabase email/password auth
+- Role selection on registration: Homeowner · Engineer · Admin
+- Protected routes with role-based dashboard routing
+
+### Client Dashboard
+
+- Project tracking with progress bars and payment status
+- Daily automated project updates (08:00 WAT via APScheduler)
+- Unread update badges
+- Quick links to calculators and resources
+
+### Admin Dashboard
+
+- Full project and consultation management
+- Revenue summary and client count
+- Consultation status workflow (pending → reviewed → contacted → converted)
+
+### Construction Calculators (General)
+
+- Concrete mix design (cement bags, sand, aggregate)
+- Block / sandcrete wall estimation
+- Paint quantity
+- Roofing sheets
+- Floor tiles
+
+### Engineer Calculations (Structural)
+
+- RC Beam design (EC2/BS8110 — moment, reinforcement, lever arm)
+- RC Column design (axial, slenderness, minimum steel)
+- Rebar / Bar Bending Schedule weight calculator
+- Pad foundation sizing (bearing capacity)
+- Wind load estimation (EC1-1-4)
+
+### Certificates
+
+- Printable internship/programme completion certificate (PDF via browser print)
+- Customisable: name, programme, period, supervisor, certificate ID
+
+### Education & Outreach
+
+- Internship applications for civil/structural engineering students
+- University partnership target: ABUAD, Nile University, University of Ibadan
 
 ---
 
 ## Project Structure
 
 ```
-lightyear-stellar/
-├── src/                        ← Frontend (React + TypeScript)
-│   ├── components/             ← Navbar, Footer, HeroSection, ConsultationDrawer, AIChatWidget, …
-│   ├── pages/                  ← Home, Login, Dashboard, AdminDashboard, Calculators, …
-│   ├── context/AuthContext.tsx ← Global auth state
-│   ├── lib/supabase.ts         ← Supabase client + apiCall helper
-│   └── theme/index.ts          ← Chakra UI theme (colors, fonts, variants)
+lightyear-fullstack/
+├── src/                              Frontend (React + TypeScript)
+│   ├── components/
+│   │   ├── Navbar.tsx                Auth-aware, dark/light adaptive
+│   │   ├── Footer.tsx                Dynamic year, social links
+│   │   ├── ColorModeToggle.tsx       Sun/Moon icon toggle
+│   │   ├── ConsultationDrawer.tsx    3-step form + email + WhatsApp/LinkedIn
+│   │   ├── AIChatWidget.tsx          Stella AI floating chat
+│   │   ├── Certificate.tsx           Printable PDF certificate
+│   │   ├── HeroSection.tsx
+│   │   ├── FoundationSection.tsx
+│   │   ├── ServicesSection.tsx
+│   │   ├── ProjectsSection.tsx
+│   │   ├── TestimonialsSection.tsx
+│   │   └── CtaSection.tsx
+│   ├── pages/
+│   │   ├── Home.tsx
+│   │   ├── WhoWeAre.tsx
+│   │   ├── Experience.tsx
+│   │   ├── Services.tsx
+│   │   ├── ProjectStudies.tsx
+│   │   ├── Contact.tsx
+│   │   ├── Login.tsx                 Role selector → register/login
+│   │   ├── Dashboard.tsx             Client view
+│   │   ├── AdminDashboard.tsx        Admin/engineer view
+│   │   ├── Calculators.tsx           General construction calcs
+│   │   └── EngineerCalculations.tsx  Structural engineering calcs
+│   ├── context/AuthContext.tsx       Global auth state
+│   ├── lib/supabase.ts               Supabase client + apiCall helper
+│   ├── theme/index.ts                Chakra theme + semantic tokens
+│   └── vite-env.d.ts
 │
-├── backend/                    ← FastAPI (Python)
-│   ├── main.py                 ← App entry point + scheduler
-│   ├── models.py               ← Pydantic schemas
-│   ├── config.py               ← Settings from .env
-│   ├── supabase_client.py      ← Supabase service-role client
-│   ├── auth_middleware.py      ← JWT auth + role guards
+├── backend/
+│   ├── main.py                       App entry + CORS + scheduler
+│   ├── config.py                     Settings from .env
+│   ├── models.py                     Pydantic schemas
+│   ├── supabase_client.py
+│   ├── auth_middleware.py
 │   ├── requirements.txt
-│   ├── .env.example
+│   ├── Procfile
+│   ├── runtime.txt                   python-3.11.9
 │   └── routers/
 │       ├── consultations.py
 │       ├── projects.py
-│       ├── ai_chat.py
+│       ├── ai_chat.py                Fixed Groq integration
 │       ├── calculators.py
+│       ├── email.py                  Resend HTML email templates
 │       └── users.py
 │
-├── supabase/
-│   └── schema.sql              ← Full DB schema + RLS policies
-│
-├── render.yaml                 ← One-file Render deployment
+├── supabase/schema.sql               Idempotent DB schema + RLS
+├── render.yaml                       One-click Render deploy
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Local Development Setup
+## Environment Variables
 
-### Prerequisites
-- Node.js v18+
-- Python 3.11+
-- A free [Supabase](https://supabase.com) account
-- A free [Groq](https://console.groq.com) API key
+### Frontend (`.env`)
 
----
-
-### 1. Supabase Setup
-
-1. Create a new project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and paste + run the contents of `supabase/schema.sql`
-3. Copy your keys from **Project Settings → API**:
-   - `Project URL` → `SUPABASE_URL`
-   - `anon / public` key → `SUPABASE_ANON_KEY`
-   - `service_role` key → `SUPABASE_SERVICE_KEY` *(keep this secret)*
-
----
-
-### 2. Backend Setup
-
-```bash
-cd backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate          # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env from example
-cp .env.example .env
-# Fill in SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_ANON_KEY, GROQ_API_KEY
-
-# Run dev server
-uvicorn main:app --reload --port 8000
-```
-
-API docs available at: `http://localhost:8000/docs`
-
----
-
-### 3. Frontend Setup
-
-```bash
-# From project root
-cp .env.example .env
-# Fill in VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_API_URL=http://localhost:8000
-
-npm install
-npm run dev
-```
-
-Site available at: `http://localhost:5173`
-
----
-
-### 4. Create Your Admin Account
-
-1. Register at `http://localhost:5173/login` as any role
-2. Go to Supabase **Table Editor → profiles**
-3. Find your row and set `role` to `admin`
-4. Log out and log back in — you'll now see the Admin Dashboard
-
----
-
-## Deployment on Render (Free)
-
-### One-click deploy
-The `render.yaml` at the root configures both services automatically.
-
-1. Push this repo to GitHub
-2. Go to [render.com](https://render.com) → **New → Blueprint**
-3. Connect your GitHub repo — Render reads `render.yaml` automatically
-4. Set the environment variables in the Render dashboard for each service:
-
-**Backend service (`lightyear-api`):**
-```
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_KEY=eyJ...
-SUPABASE_ANON_KEY=eyJ...
-GROQ_API_KEY=gsk_...
-FRONTEND_URL=https://lightyear.onrender.com
-```
-
-**Frontend service (`lightyear`):**
 ```
 VITE_SUPABASE_URL=https://xxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...
-VITE_API_URL=https://lightyear-api.onrender.com
+VITE_API_URL=http://localhost:8000
 ```
 
-> **Note on free tier:** Render free services spin down after 15 minutes of inactivity.
-> The first request after idle takes ~30s. Upgrade to Starter ($7/mo) for always-on.
+### Backend (`backend/.env`)
+
+```
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_SERVICE_KEY=eyJ...          # service_role key — keep secret
+SUPABASE_ANON_KEY=eyJ...
+GROQ_API_KEY=gsk_...                  # free at console.groq.com
+RESEND_API_KEY=re_...                 # free at resend.com (3000 emails/month)
+FRONTEND_URL=http://localhost:5173
+ENVIRONMENT=development
+```
 
 ---
 
-## Environment Variables Reference
+## Local Setup
 
-### Frontend (`.env`)
-| Variable | Description |
-|---|---|
-| `VITE_SUPABASE_URL` | Your Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon/public key |
-| `VITE_API_URL` | FastAPI backend URL |
+### 1 — Supabase
 
-### Backend (`backend/.env`)
-| Variable | Description |
-|---|---|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_SERVICE_KEY` | Supabase service_role key (never expose) |
-| `SUPABASE_ANON_KEY` | Supabase anon key |
-| `GROQ_API_KEY` | Groq API key (free at console.groq.com) |
-| `FRONTEND_URL` | Your deployed frontend URL (for CORS) |
+1. Create project at supabase.com
+2. SQL Editor → run `supabase/schema.sql`
+3. Copy Project URL, anon key, service_role key
+
+### 2 — Groq (free AI)
+
+Sign up at console.groq.com → create API key
+
+### 3 — Resend (free email)
+
+Sign up at resend.com → create API key → verify a sending domain
+
+### 4 — Backend
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env            # fill in all values
+uvicorn main:app --reload --port 8000
+# Docs: http://localhost:8000/docs
+```
+
+### 5 — Frontend
+
+```bash
+# project root
+cp .env.example .env            # fill in values
+npm install
+npm run dev
+# Site: http://localhost:5173
+```
+
+### 6 — Make yourself admin
+
+```sql
+-- Run in Supabase SQL Editor AFTER registering:
+UPDATE public.profiles SET role = 'admin' WHERE email = 'your@email.com';
+```
+
+---
+
+## Render Deployment
+
+1. Push to GitHub
+2. render.com → New → Blueprint → connect repo
+3. Set env vars for both services (lightyear + lightyear-api)
+4. URLs: https://lightyear.onrender.com · https://lightyear-api.onrender.com
+
+**Free tier note:** Services sleep after 15 min idle. First request ~30s cold start.
 
 ---
 
 ## API Reference
 
-Full interactive docs at `/docs` (Swagger UI) when backend is running.
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | `/consultations/` | None | Submit consultation form |
-| GET | `/consultations/` | Admin | List all consultations |
-| GET | `/projects/` | User | List projects (filtered by role) |
-| POST | `/projects/` | Engineer/Admin | Create project |
-| PATCH | `/projects/{id}` | Engineer/Admin | Update project |
-| GET | `/projects/{id}/updates` | User | Get project updates |
-| POST | `/ai/chat` | None | Chat with Stella AI |
-| POST | `/calculators/concrete` | None | Concrete calculator |
-| POST | `/calculators/blocks` | None | Block calculator |
-| POST | `/calculators/paint` | None | Paint calculator |
-| POST | `/calculators/roof` | None | Roof calculator |
-| GET | `/users/me` | User | Get own profile |
+| Method | Endpoint                | Auth      | Description                |
+| ------ | ----------------------- | --------- | -------------------------- |
+| POST   | /consultations/         | None      | Submit consultation        |
+| GET    | /consultations/         | Admin     | List all consultations     |
+| PATCH  | /consultations/{id}     | Admin     | Update consultation status |
+| GET    | /projects/              | User      | List projects (by role)    |
+| POST   | /projects/              | Eng/Admin | Create project             |
+| PATCH  | /projects/{id}          | Eng/Admin | Update project             |
+| GET    | /projects/{id}/updates  | User      | Get project updates        |
+| POST   | /projects/{id}/updates  | User      | Add project update         |
+| GET    | /projects/admin/summary | Admin     | Dashboard summary stats    |
+| POST   | /ai/chat                | None      | Chat with Stella AI        |
+| POST   | /calculators/concrete   | None      | Concrete calculator        |
+| POST   | /calculators/blocks     | None      | Block wall calculator      |
+| POST   | /calculators/paint      | None      | Paint calculator           |
+| POST   | /calculators/roof       | None      | Roofing calculator         |
+| POST   | /calculators/tiles      | None      | Tiles calculator           |
+| POST   | /email/contact          | None      | Send contact email         |
+| POST   | /email/consultation     | None      | Send consultation email    |
+| GET    | /users/me               | User      | Get own profile            |
+| PATCH  | /users/me               | User      | Update own profile         |
+| PATCH  | /users/{id}/role        | Admin     | Change user role           |
 
 ---
 
-## License
+## Contact
 
-Private — Lightyear Stellar Solutions Ltd. © 2024–present
+**Lightyear Stellar Solutions Ltd**  
+179A, Maccido Royal Estate, Galadimawa, Abuja  
+📞 +234 703 208 2725  
+📧 info@lightyear.ng  
+🔗 linkedin.com/company/lightyear-consult  
+💬 wa.me/2347032082725
+
+© 2026 Lightyear Stellar Solutions Ltd. All rights reserved.
