@@ -28,12 +28,14 @@ interface Props {
   onClose: () => void;
 }
 
-// Contact details
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const EMAIL_EDGE_URL =
+  "https://poyztenrzdbkerchqbsr.supabase.co/functions/v1/send-consultation-email";
+
 const WHATSAPP = "https://wa.me/2347032082725";
 const LINKEDIN = "https://linkedin.com/company/lightyear-engineering";
 const PHONE = "tel:+2347032082725";
 const EMAIL = "mailto:lightyearconsult@gmail.com";
-
 const STEPS = ["Your Details", "Project Info", "Review & Submit"];
 
 export default function ConsultationDrawer({ isOpen, onClose }: Props) {
@@ -41,13 +43,13 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
 
   const drawerBg = useColorModeValue("white", "#0F1929");
   const borderC = useColorModeValue("#E2E8F0", "#1E2E4A");
-  const inputBg = useColorModeValue("#F8FAFC", "#080C14");
-  const labelC = useColorModeValue("#64748B", "#8899AA");
+  const inputBg = useColorModeValue("#F8FAFC", "#0D1726");
   const textC = useColorModeValue("#111827", "#EEF2F7");
+  const labelC = useColorModeValue("#64748B", "#8899AA");
   const mutedC = useColorModeValue("#374151", "#C8D6E8");
   const reviewBg = useColorModeValue("#F8FAFC", "#080C14");
 
-  const iStyles = {
+  const iS = {
     bg: inputBg,
     border: "1px solid",
     borderColor: borderC,
@@ -58,7 +60,7 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
     _focus: { borderColor: "brand.500", boxShadow: "0 0 0 1px #C8963E" },
     _hover: { borderColor: "brand.700" },
   };
-  const lStyles = {
+  const lS = {
     fontSize: "xs" as const,
     fontFamily: "mono",
     color: labelC,
@@ -96,13 +98,19 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
     setLoading(true);
     setError("");
     try {
-      // Save directly to Supabase — no backend needed
-      const { error: sbError } = await supabase.from("consultations").insert({
-        ...form,
-        user_id: profile?.id || null,
-      });
+      // 1. Save to Supabase DB
+      const { error: dbErr } = await supabase
+        .from("consultations")
+        .insert({ ...form, user_id: profile?.id || null });
+      if (dbErr) throw new Error(dbErr.message);
 
-      if (sbError) throw new Error(sbError.message);
+      // 2. Trigger email via Edge Function (non-blocking — don't fail if email fails)
+      fetch(EMAIL_EDGE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      }).catch((e) => console.warn("Email edge fn failed (non-fatal):", e));
+
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message || "Submission failed. Please contact us directly.");
@@ -138,10 +146,8 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
           mt={2}
           _hover={{ color: "brand.400" }}
         />
-
         <DrawerBody p={0}>
           {submitted ? (
-            // ── Success ─────────────────────────────────────────────────
             <Box p={10} textAlign="center" pt={16}>
               <Box
                 w="68px"
@@ -166,7 +172,6 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </Box>
-
               <Text
                 fontFamily="heading"
                 fontSize="2xl"
@@ -182,15 +187,16 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 lineHeight="1.8"
                 maxW="300px"
                 mx="auto"
-                mb={8}
+                mb={2}
               >
-                Thank you, <strong>{form.full_name.split(" ")[0]}</strong>. Our
-                team will review your request and reach out within 1 business
-                day.
+                Thank you, <strong>{form.full_name.split(" ")[0]}</strong>. A
+                confirmation email has been sent to{" "}
+                <strong>{form.email}</strong>.
               </Text>
-
+              <Text fontSize="xs" color={labelC} mb={8}>
+                Our team will be in touch within 1 business day.
+              </Text>
               <Divider borderColor={borderC} mb={7} />
-
               <Text
                 fontSize="xs"
                 fontFamily="mono"
@@ -201,53 +207,42 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
               >
                 Reach Us Directly
               </Text>
-
               <VStack spacing={2} mb={8}>
-                <ChakraLink href={WHATSAPP} isExternal w="full">
-                  <Button
-                    variant="ghost_light"
+                {[
+                  {
+                    href: WHATSAPP,
+                    label: "💬 WhatsApp — +234 703 208 2725",
+                    ext: true,
+                  },
+                  {
+                    href: PHONE,
+                    label: "📞 Call — +234 703 208 2725",
+                    ext: false,
+                  },
+                  {
+                    href: EMAIL,
+                    label: "✉️ lightyearconsult@gmail.com",
+                    ext: false,
+                  },
+                  { href: LINKEDIN, label: "🔗 LinkedIn", ext: true },
+                ].map((c) => (
+                  <ChakraLink
+                    key={c.label}
+                    href={c.href}
+                    isExternal={c.ext}
                     w="full"
-                    size="sm"
-                    leftIcon={
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                      >
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347zM12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.126 1.533 5.862L0 24l6.305-1.654A11.954 11.954 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.817 9.817 0 01-5.006-1.374l-.358-.213-3.722.976.993-3.623-.234-.372A9.816 9.816 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z" />
-                      </svg>
-                    }
                   >
-                    WhatsApp — +234 703 208 2725
-                  </Button>
-                </ChakraLink>
-
-                <ChakraLink href={PHONE} w="full">
-                  <Button variant="ghost_light" w="full" size="sm">
-                    📞 Call — +234 703 208 2725
-                  </Button>
-                </ChakraLink>
-
-                <ChakraLink href={EMAIL} w="full">
-                  <Button variant="ghost_light" w="full" size="sm">
-                    ✉️ lightyearconsult@gmail.com
-                  </Button>
-                </ChakraLink>
-
-                <ChakraLink href={LINKEDIN} isExternal w="full">
-                  <Button variant="ghost_light" w="full" size="sm">
-                    🔗 LinkedIn
-                  </Button>
-                </ChakraLink>
+                    <Button variant="ghost_light" w="full" size="sm">
+                      {c.label}
+                    </Button>
+                  </ChakraLink>
+                ))}
               </VStack>
-
               <Button variant="gold" size="sm" px={8} onClick={handleClose}>
                 Close
               </Button>
             </Box>
           ) : (
-            // ── Form ────────────────────────────────────────────────────
             <Box p={8}>
               <Text
                 fontFamily="heading"
@@ -259,57 +254,49 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 Book a Consultation
               </Text>
               <Text fontSize="sm" color={labelC} mb={4}>
-                Fill the form below, or reach us directly:
+                Fill the form or reach us directly:
               </Text>
-
-              {/* Inline contact links */}
-              <HStack spacing={3} mb={6} flexWrap="wrap">
-                <ChakraLink
-                  href={WHATSAPP}
-                  isExternal
-                  fontSize="xs"
-                  color="green.500"
-                  fontWeight="600"
-                >
-                  💬 WhatsApp
-                </ChakraLink>
-                <Text fontSize="xs" color={labelC}>
-                  ·
-                </Text>
-                <ChakraLink
-                  href={PHONE}
-                  fontSize="xs"
-                  color="brand.400"
-                  fontWeight="600"
-                >
-                  📞 Call Us
-                </ChakraLink>
-                <Text fontSize="xs" color={labelC}>
-                  ·
-                </Text>
-                <ChakraLink
-                  href={LINKEDIN}
-                  isExternal
-                  fontSize="xs"
-                  color="blue.400"
-                  fontWeight="600"
-                >
-                  🔗 LinkedIn
-                </ChakraLink>
-                <Text fontSize="xs" color={labelC}>
-                  ·
-                </Text>
-                <ChakraLink
-                  href={EMAIL}
-                  fontSize="xs"
-                  color="brand.400"
-                  fontWeight="600"
-                >
-                  ✉️ Email
-                </ChakraLink>
+              <HStack spacing={2} mb={6} flexWrap="wrap">
+                {[
+                  {
+                    href: WHATSAPP,
+                    label: "💬 WhatsApp",
+                    color: "green.500",
+                    ext: true,
+                  },
+                  {
+                    href: PHONE,
+                    label: "📞 Call",
+                    color: "brand.400",
+                    ext: false,
+                  },
+                  {
+                    href: LINKEDIN,
+                    label: "🔗 LinkedIn",
+                    color: "blue.400",
+                    ext: true,
+                  },
+                  {
+                    href: EMAIL,
+                    label: "✉️ Email",
+                    color: "brand.400",
+                    ext: false,
+                  },
+                ].map((c) => (
+                  <ChakraLink
+                    key={c.label}
+                    href={c.href}
+                    isExternal={c.ext}
+                    fontSize="xs"
+                    color={c.color}
+                    fontWeight="600"
+                  >
+                    {c.label}
+                  </ChakraLink>
+                ))}
               </HStack>
 
-              {/* Step indicators */}
+              {/* Steps */}
               <HStack spacing={0} mb={7}>
                 {STEPS.map((label, i) => (
                   <Box key={label} flex={1}>
@@ -333,23 +320,22 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 ))}
               </HStack>
 
-              {/* ── Step 0 ── */}
               {step === 0 && (
                 <VStack spacing={4}>
                   <Grid templateColumns="1fr 1fr" gap={4} w="full">
                     <FormControl isRequired>
-                      <FormLabel {...lStyles}>Full Name</FormLabel>
+                      <FormLabel {...lS}>Full Name</FormLabel>
                       <Input
-                        {...iStyles}
+                        {...iS}
                         placeholder="John Doe"
                         value={form.full_name}
                         onChange={f("full_name")}
                       />
                     </FormControl>
                     <FormControl isRequired>
-                      <FormLabel {...lStyles}>Email</FormLabel>
+                      <FormLabel {...lS}>Email</FormLabel>
                       <Input
-                        {...iStyles}
+                        {...iS}
                         type="email"
                         placeholder="you@example.com"
                         value={form.email}
@@ -359,18 +345,18 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                   </Grid>
                   <Grid templateColumns="1fr 1fr" gap={4} w="full">
                     <FormControl>
-                      <FormLabel {...lStyles}>Phone</FormLabel>
+                      <FormLabel {...lS}>Phone</FormLabel>
                       <Input
-                        {...iStyles}
+                        {...iS}
                         placeholder="+234 000 000 0000"
                         value={form.phone}
                         onChange={f("phone")}
                       />
                     </FormControl>
                     <FormControl>
-                      <FormLabel {...lStyles}>Location</FormLabel>
+                      <FormLabel {...lS}>Location</FormLabel>
                       <Input
-                        {...iStyles}
+                        {...iS}
                         placeholder="Lagos, Nigeria"
                         value={form.location}
                         onChange={f("location")}
@@ -389,13 +375,12 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 </VStack>
               )}
 
-              {/* ── Step 1 ── */}
               {step === 1 && (
                 <VStack spacing={4}>
                   <FormControl w="full">
-                    <FormLabel {...lStyles}>Service Needed</FormLabel>
+                    <FormLabel {...lS}>Service Needed</FormLabel>
                     <Select
-                      {...iStyles}
+                      {...iS}
                       value={form.service_type}
                       onChange={f("service_type")}
                       placeholder="Select a service"
@@ -410,12 +395,12 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                     </Select>
                   </FormControl>
                   <FormControl w="full">
-                    <FormLabel {...lStyles}>Project Type</FormLabel>
+                    <FormLabel {...lS}>Project Type</FormLabel>
                     <Select
-                      {...iStyles}
+                      {...iS}
                       value={form.project_type}
                       onChange={f("project_type")}
-                      placeholder="Select project type"
+                      placeholder="Select type"
                     >
                       <option>Residential</option>
                       <option>Commercial</option>
@@ -426,12 +411,12 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                   </FormControl>
                   <Grid templateColumns="1fr 1fr" gap={4} w="full">
                     <FormControl>
-                      <FormLabel {...lStyles}>Budget Range</FormLabel>
+                      <FormLabel {...lS}>Budget Range</FormLabel>
                       <Select
-                        {...iStyles}
+                        {...iS}
                         value={form.budget_range}
                         onChange={f("budget_range")}
-                        placeholder="Select range"
+                        placeholder="Select"
                       >
                         <option>Under ₦5M</option>
                         <option>₦5M – ₦20M</option>
@@ -441,28 +426,28 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                       </Select>
                     </FormControl>
                     <FormControl>
-                      <FormLabel {...lStyles}>Timeline</FormLabel>
+                      <FormLabel {...lS}>Timeline</FormLabel>
                       <Select
-                        {...iStyles}
+                        {...iS}
                         value={form.timeline}
                         onChange={f("timeline")}
-                        placeholder="When to start?"
+                        placeholder="When?"
                       >
                         <option>Immediately</option>
-                        <option>1 – 3 months</option>
-                        <option>3 – 6 months</option>
+                        <option>1–3 months</option>
+                        <option>3–6 months</option>
                         <option>6+ months</option>
                         <option>Just exploring</option>
                       </Select>
                     </FormControl>
                   </Grid>
                   <FormControl isRequired w="full">
-                    <FormLabel {...lStyles}>Project Description</FormLabel>
+                    <FormLabel {...lS}>Project Description</FormLabel>
                     <Textarea
-                      {...iStyles}
+                      {...iS}
                       rows={4}
                       resize="none"
-                      placeholder="Describe your project, goals, and any specific requirements..."
+                      placeholder="Describe your project, goals, and requirements..."
                       value={form.message}
                       onChange={f("message")}
                     />
@@ -487,10 +472,8 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 </VStack>
               )}
 
-              {/* ── Step 2 ── */}
               {step === 2 && (
                 <VStack spacing={0} align="stretch">
-                  {/* Error */}
                   {error && (
                     <Box
                       p={3}
@@ -504,19 +487,35 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                       </Text>
                     </Box>
                   )}
-
+                  <Box
+                    mb={4}
+                    p={3}
+                    bg="rgba(200,150,62,0.06)"
+                    border="1px solid"
+                    borderColor="brand.700"
+                  >
+                    <Text
+                      fontSize="xs"
+                      fontFamily="mono"
+                      color="brand.500"
+                      letterSpacing="0.08em"
+                    >
+                      📧 A confirmation will be sent to{" "}
+                      <strong>{form.email}</strong>
+                    </Text>
+                  </Box>
                   {[
-                    { label: "Name", value: form.full_name },
-                    { label: "Email", value: form.email },
-                    { label: "Phone", value: form.phone || "—" },
-                    { label: "Location", value: form.location || "—" },
-                    { label: "Service", value: form.service_type || "—" },
-                    { label: "Project Type", value: form.project_type || "—" },
-                    { label: "Budget", value: form.budget_range || "—" },
-                    { label: "Timeline", value: form.timeline || "—" },
-                  ].map((row) => (
+                    ["Name", form.full_name],
+                    ["Email", form.email],
+                    ["Phone", form.phone || "—"],
+                    ["Location", form.location || "—"],
+                    ["Service", form.service_type || "—"],
+                    ["Project Type", form.project_type || "—"],
+                    ["Budget", form.budget_range || "—"],
+                    ["Timeline", form.timeline || "—"],
+                  ].map(([k, v]) => (
                     <HStack
-                      key={row.label}
+                      key={k}
                       py={2.5}
                       borderBottom="1px solid"
                       borderColor={borderC}
@@ -529,7 +528,7 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                         letterSpacing="0.08em"
                         textTransform="uppercase"
                       >
-                        {row.label}
+                        {k}
                       </Text>
                       <Text
                         fontSize="sm"
@@ -538,11 +537,10 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                         textAlign="right"
                         maxW="58%"
                       >
-                        {row.value}
+                        {v}
                       </Text>
                     </HStack>
                   ))}
-
                   <Box
                     mt={4}
                     p={4}
@@ -564,7 +562,6 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                       {form.message}
                     </Text>
                   </Box>
-
                   <HStack mt={6} gap={3}>
                     <Button
                       variant="ghost_light"

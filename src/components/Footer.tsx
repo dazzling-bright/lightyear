@@ -10,6 +10,7 @@ import {
   IconButton,
   Divider,
   useColorModeValue,
+  Image,
 } from "@chakra-ui/react";
 import { Link } from "react-router-dom";
 
@@ -133,44 +134,12 @@ export default function Footer() {
         >
           {/* Brand */}
           <GridItem>
-            <Flex align="center" gap={3} mb={5}>
-              <Box w="32px" h="32px" position="relative" flexShrink={0}>
-                <Box
-                  position="absolute"
-                  inset={0}
-                  bg="brand.500"
-                  transform="rotate(45deg)"
-                  borderRadius="2px"
-                />
-                <Box
-                  position="absolute"
-                  inset="8px"
-                  bg={bg}
-                  transform="rotate(45deg)"
-                  borderRadius="1px"
-                />
-              </Box>
-              <Box>
-                <Text
-                  fontFamily="heading"
-                  fontWeight="700"
-                  fontSize="md"
-                  color={textC}
-                  lineHeight="1.1"
-                >
-                  Lightyear Engineering
-                </Text>
-                <Text
-                  fontFamily="mono"
-                  fontSize="7px"
-                  color="brand.500"
-                  letterSpacing="0.2em"
-                  textTransform="uppercase"
-                >
-                  Consultancy Ltd
-                </Text>
-              </Box>
-            </Flex>
+            <Image
+              src="/lightyearLogo.jpeg"
+              alt="Lightyear Logo"
+              height={"40px"}
+              objectFit={"cover"}
+            />
 
             <Text
               fontSize="sm"

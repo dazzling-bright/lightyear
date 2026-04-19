@@ -5,24 +5,23 @@ const config: ThemeConfig = {
   useSystemColorMode: false,
 };
 
-// Only brand gold here — never changes between light/dark
+// GTBank Orange palette — primary: #F26522
 const colors = {
   brand: {
-    50: "#FFF8E8",
-    100: "#FCECC5",
-    200: "#F8D98A",
-    300: "#F0C050",
-    400: "#E8B84B",
-    500: "#C8963E",
-    600: "#A87830",
-    700: "#875C22",
-    800: "#664216",
-    900: "#442B0A",
+    50: "#FFF3EC",
+    100: "#FFE0CC",
+    200: "#FFC49A",
+    300: "#FFA368",
+    400: "#FF8040", // hover / lighter orange
+    500: "#F26522", // GTBank primary orange
+    600: "#D4521A", // active / darker
+    700: "#A83E12", // deep orange
+    800: "#7A2B0C",
+    900: "#4D1A06",
   },
 };
 
 // ALL surface/text/bg colors are semantic tokens.
-// Any component using bg="stellar.bg" etc. automatically flips on toggle.
 const semanticTokens = {
   colors: {
     "stellar.bg": { default: "#F7F8FA", _dark: "#080C14" },
@@ -49,7 +48,6 @@ const fonts = {
   mono: `'Space Mono', monospace`,
 };
 
-// Semantic tokens in styles.global means the ENTIRE app body flips
 const styles = {
   global: {
     "html, body": {
@@ -77,13 +75,14 @@ const components = {
       transition: "all 0.3s ease",
     },
     variants: {
+      // Renamed from "gold" to keep same variant name — no component changes needed
       gold: {
         bg: "brand.500",
         color: "white",
         _hover: {
           bg: "brand.400",
           transform: "translateY(-1px)",
-          boxShadow: "0 8px 30px rgba(200,150,62,0.35)",
+          boxShadow: "0 8px 30px rgba(242,101,34,0.35)",
         },
         _active: { bg: "brand.600", transform: "translateY(0)" },
       },
@@ -94,13 +93,13 @@ const components = {
         borderColor: "border-color",
         _hover: {
           borderColor: "brand.500",
-          color: "brand.400",
-          bg: "rgba(200,150,62,0.06)",
+          color: "brand.500",
+          bg: "rgba(242,101,34,0.06)",
         },
       },
       outline_gold: {
         bg: "transparent",
-        color: "brand.400",
+        color: "brand.500",
         border: "1px solid",
         borderColor: "brand.500",
         _hover: {
@@ -117,7 +116,7 @@ const components = {
   Link: {
     baseStyle: {
       transition: "color 0.2s",
-      _hover: { textDecoration: "none", color: "brand.400" },
+      _hover: { textDecoration: "none", color: "brand.500" },
     },
   },
   Modal: { baseStyle: { dialog: { bg: "stellar.surface" } } },

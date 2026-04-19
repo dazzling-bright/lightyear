@@ -32,9 +32,9 @@ const Contact = lazy(() => import("./pages/Contact"));
 const LoginPage = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
-// Calculators are PUBLIC — accessible without login
 const CalculatorsPage = lazy(() => import("./pages/Calculators"));
 const EngineerCalculations = lazy(() => import("./pages/EngineerCalculations"));
+const Internship = lazy(() => import("./pages/Internship"));
 
 type LayoutContext = { onOpenConsultation: () => void };
 export const useConsultation = () => useOutletContext<LayoutContext>();
@@ -158,7 +158,12 @@ const router = createBrowserRouter([
         element: <LoginPage />,
         errorElement: <ErrorBoundary />,
       },
-      // Calculators — PUBLIC, no auth required
+      {
+        path: "/internship",
+        element: <Internship />,
+        errorElement: <ErrorBoundary />,
+      },
+      // Calculators — PUBLIC
       {
         path: "/calculators",
         element: <CalculatorsPage />,
@@ -169,7 +174,7 @@ const router = createBrowserRouter([
         element: <EngineerCalculations />,
         errorElement: <ErrorBoundary />,
       },
-      // Protected — dashboard only
+      // Protected
       {
         element: <ProtectedRoute />,
         errorElement: <ErrorBoundary />,

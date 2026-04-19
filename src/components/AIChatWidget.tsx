@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Box,
   Text,
@@ -11,29 +11,32 @@ import {
 } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
-import { supabase } from "../lib/supabase";
 
 const MotionBox = motion(Box);
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const EDGE_CHAT_URL = `${SUPABASE_URL}/functions/v1/stella-chat`;
+
+// Hardcoded consultation email edge function URL
+const EMAIL_FN_URL =
+  "https://poyztenrzdbkerchqbsr.supabase.co/functions/v1/send-consultation-email";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
 }
 
-// Edge function URL 
-const EDGE_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stella-chat`;
-
 const SUGGESTIONS = [
-  "What is waterproofing and why is it critical?",
-  "What permits do I need to build in Nigeria?",
-  "How long does a typical construction project take?",
-  "How much does it cost to build a 3-bedroom house in Abuja?",
+  "How much to build a 3-bedroom house in Abuja?",
+  "Why is waterproofing critical in Nigeria?",
+  "What permits do I need to build?",
+  "What is a foundation investigation?",
 ];
 
 const SendIcon = () => (
   <svg
-    width="16"
-    height="16"
+    width="15"
+    height="15"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -45,8 +48,8 @@ const SendIcon = () => (
 );
 const CloseIcon = () => (
   <svg
-    width="15"
-    height="15"
+    width="14"
+    height="14"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -58,8 +61,8 @@ const CloseIcon = () => (
 );
 const ChatIcon = () => (
   <svg
-    width="22"
-    height="22"
+    width="21"
+    height="21"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -68,19 +71,33 @@ const ChatIcon = () => (
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
   </svg>
 );
+const DragIcon = () => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    opacity={0.4}
+  >
+    <circle cx="9" cy="5" r="1.5" />
+    <circle cx="15" cy="5" r="1.5" />
+    <circle cx="9" cy="12" r="1.5" />
+    <circle cx="15" cy="12" r="1.5" />
+    <circle cx="9" cy="19" r="1.5" />
+    <circle cx="15" cy="19" r="1.5" />
+  </svg>
+);
 
 function Bubble({ msg }: { msg: Message }) {
   const isUser = msg.role === "user";
-  const userBg = useColorModeValue("brand.600", "brand.600");
-  const aiBg = useColorModeValue("gray.100", "stellar.card");
-  const aiText = useColorModeValue("gray.800", "stellar.text");
-
+  const aiBg = useColorModeValue("#F1F5F9", "#141F33");
+  const aiText = useColorModeValue("#1A202C", "#EEF2F7");
   return (
     <Flex justify={isUser ? "flex-end" : "flex-start"} w="full">
       {!isUser && (
         <Box
-          w="26px"
-          h="26px"
+          w="24px"
+          h="24px"
           bg="brand.500"
           borderRadius="2px"
           display="flex"
@@ -92,7 +109,7 @@ function Bubble({ msg }: { msg: Message }) {
         >
           <Text
             fontFamily="heading"
-            fontSize="10px"
+            fontSize="9px"
             fontWeight="900"
             color="white"
           >
@@ -104,8 +121,8 @@ function Bubble({ msg }: { msg: Message }) {
         maxW="82%"
         px={3}
         py={2}
-        bg={isUser ? userBg : aiBg}
         borderRadius="2px"
+        bg={isUser ? "brand.600" : aiBg}
         border="1px solid"
         borderColor={isUser ? "brand.500" : "transparent"}
       >
@@ -122,6 +139,9 @@ function Bubble({ msg }: { msg: Message }) {
   );
 }
 
+// ── Drag threshold — only commit to dragging after moving 6px ─────────────────
+const DRAG_THRESHOLD = 6;
+
 export default function AIChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -131,13 +151,94 @@ export default function AIChatWidget() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const { profile } = useAuth();
 
-  const panelBg = useColorModeValue("white", "stellar.surface");
-  const headerBg = useColorModeValue("gray.50", "stellar.card");
-  const inputBg = useColorModeValue("#F8FAFC", "stellar.bg");
-  const borderC = useColorModeValue("gray.200", "stellar.border");
-  const mutedC = useColorModeValue("gray.500", "stellar.muted");
-  const suggBg = useColorModeValue("gray.50", "stellar.bg");
-  const suggHover = useColorModeValue("gray.100", "stellar.surface");
+  // ── Drag state ──────────────────────────────────────────────────────────────
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  // hasDragged: true only if mouse moved beyond threshold during this press
+  const hasDragged = useRef(false);
+  const isPressing = useRef(false);
+  const pressStart = useRef<{
+    mx: number;
+    my: number;
+    px: number;
+    py: number;
+  } | null>(null);
+
+  // Mouse drag handlers
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if ((e.target as HTMLElement).closest("[data-nodrag]")) return;
+      e.preventDefault();
+      hasDragged.current = false;
+      isPressing.current = true;
+      pressStart.current = {
+        mx: e.clientX,
+        my: e.clientY,
+        px: pos.x,
+        py: pos.y,
+      };
+    },
+    [pos],
+  );
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!isPressing.current || !pressStart.current) return;
+      const dx = e.clientX - pressStart.current.mx;
+      const dy = e.clientY - pressStart.current.my;
+      // Only start moving after threshold
+      if (!hasDragged.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      hasDragged.current = true;
+      setPos({ x: pressStart.current.px + dx, y: pressStart.current.py + dy });
+    };
+    const onUp = () => {
+      isPressing.current = false;
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, []); // runs once — pressStart and hasDragged are refs
+
+  // Touch drag handlers
+  const onTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if ((e.target as HTMLElement).closest("[data-nodrag]")) return;
+      const t = e.touches[0];
+      hasDragged.current = false;
+      isPressing.current = true;
+      pressStart.current = {
+        mx: t.clientX,
+        my: t.clientY,
+        px: pos.x,
+        py: pos.y,
+      };
+    },
+    [pos],
+  );
+
+  useEffect(() => {
+    const onMove = (e: TouchEvent) => {
+      if (!isPressing.current || !pressStart.current) return;
+      const t = e.touches[0];
+      const dx = t.clientX - pressStart.current.mx;
+      const dy = t.clientY - pressStart.current.my;
+      if (!hasDragged.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      hasDragged.current = true;
+      e.preventDefault(); // stop scroll while dragging widget
+      setPos({ x: pressStart.current.px + dx, y: pressStart.current.py + dy });
+    };
+    const onEnd = () => {
+      isPressing.current = false;
+    };
+    window.addEventListener("touchmove", onMove, { passive: false });
+    window.addEventListener("touchend", onEnd);
+    return () => {
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+    };
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -150,7 +251,7 @@ export default function AIChatWidget() {
       setMessages([
         {
           role: "assistant",
-          content: `Hi ${name}! 👋 I'm **Stella**, Lightyear Engineering's AI assistant.\n\nAsk me anything about construction costs, materials, engineering, permits in Nigeria, or our services. How can I help?`,
+          content: `Hi ${name}! 👋 I'm **Stella**, Lightyear Engineering's AI assistant.\n\nAsk me anything about construction, materials, costs, permits, or our services. How can I help?`,
         },
       ]);
     }
@@ -160,36 +261,33 @@ export default function AIChatWidget() {
     const content = (text ?? input).trim();
     if (!content || loading) return;
     setInput("");
-
     const updated: Message[] = [...messages, { role: "user", content }];
     setMessages(updated);
     setLoading(true);
 
     try {
-      // Call Supabase Edge Function — works when hosted, no FastAPI needed
-      const res = await fetch(EDGE_FN_URL, {
+      const res = await fetch(EDGE_CHAT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: updated.slice(-20) }),
       });
-
       if (!res.ok) {
-        throw new Error(`Status ${res.status}`);
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
       }
-
       const data = await res.json();
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: data.reply },
       ]);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Stella error:", err);
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           content:
-            "I'm having a moment — please try again shortly, or reach us directly at lightyearconsult@gmail.com or +234 703 208 2725.",
+            "I'm unavailable right now. Please contact us directly:\n📞 +234 703 208 2725\n✉️ lightyearconsult@gmail.com",
         },
       ]);
     } finally {
@@ -197,56 +295,74 @@ export default function AIChatWidget() {
     }
   };
 
+  // Handle button click — only opens if we didn't drag
+  const handleButtonClick = useCallback(() => {
+    if (!hasDragged.current) setOpen(true);
+  }, []);
+
+  const panelBg = useColorModeValue("white", "#0F1929");
+  const headerBg = useColorModeValue("#F8FAFC", "#141F33");
+  const inputBg = useColorModeValue("#F1F5F9", "#080C14");
+  const borderC = useColorModeValue("#E2E8F0", "#1E2E4A");
+  const mutedC = useColorModeValue("#64748B", "#8899AA");
+  const suggBg = useColorModeValue("#F8FAFC", "#080C14");
+
+  const baseRight = 24;
+  const baseBottom = 24;
+
   return (
     <>
-      {/* Floating trigger button */}
+      {/* ── Floating button ────────────────────────────────────────────────── */}
       <AnimatePresence>
         {!open && (
           <MotionBox
             position="fixed"
-            bottom={6}
-            right={6}
+            bottom={`${baseBottom - pos.y}px`}
+            right={`${baseRight - pos.x}px`}
             zIndex={900}
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 22 }}
+            transition={{ type: "spring", stiffness: 280, damping: 22 }}
+            // Cursor: grab only when not actively clicking
+            cursor={
+              isPressing.current && hasDragged.current ? "grabbing" : "grab"
+            }
+            onMouseDown={onMouseDown}
+            onTouchStart={onTouchStart}
           >
             <Box
               as="button"
-              onClick={() => setOpen(true)}
-              w="58px"
-              h="58px"
+              onClick={handleButtonClick} // ← uses ref to check if it was a drag
+              w="56px"
+              h="56px"
               bg="brand.500"
               display="flex"
               alignItems="center"
               justifyContent="center"
               color="white"
-              boxShadow="0 8px 32px rgba(200,150,62,0.45)"
-              transition="all 0.3s"
-              _hover={{ bg: "brand.400", transform: "scale(1.08)" }}
-              aria-label="Open Stella AI chat"
+              boxShadow="0 8px 32px rgba(242,101,34,0.4)"
+              transition="background 0.2s"
+              _hover={{ bg: "brand.400" }}
+              aria-label="Open Stella AI"
               position="relative"
             >
               <ChatIcon />
-              {/* Pulse ring */}
               <Box
                 position="absolute"
                 inset="-4px"
                 border="2px solid"
                 borderColor="brand.500"
-                opacity={0.4}
-                animation="stellaPulse 2.5s cubic-bezier(0,0,0.2,1) infinite"
+                opacity={0.35}
+                animation="stellaPing 2.5s infinite"
                 sx={{
-                  "@keyframes stellaPulse": {
-                    "0%": { transform: "scale(1)", opacity: 0.4 },
-                    "70%": { transform: "scale(1.35)", opacity: 0 },
-                    "100%": { transform: "scale(1.35)", opacity: 0 },
+                  "@keyframes stellaPing": {
+                    "0%": { transform: "scale(1)", opacity: 0.35 },
+                    "70%,100%": { transform: "scale(1.4)", opacity: 0 },
                   },
                 }}
               />
             </Box>
-            {/* Label badge */}
             <Box
               position="absolute"
               bottom="-6px"
@@ -271,19 +387,19 @@ export default function AIChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Chat panel */}
+      {/* ── Chat panel ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {open && (
           <MotionBox
             position="fixed"
-            bottom={6}
-            right={6}
+            bottom={`${baseBottom - pos.y}px`}
+            right={`${baseRight - pos.x}px`}
             zIndex={901}
-            w={{ base: "calc(100vw - 24px)", sm: "400px" }}
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            w={{ base: "calc(100vw - 24px)", sm: "390px" }}
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 30, scale: 0.95 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
+            exit={{ opacity: 0, y: 24, scale: 0.96 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
           >
             <Box
               bg={panelBg}
@@ -292,13 +408,12 @@ export default function AIChatWidget() {
               boxShadow="0 24px 80px rgba(0,0,0,0.2)"
               overflow="hidden"
             >
-              {/* Gold top line */}
               <Box
                 h="2px"
                 bgGradient="linear(to-r, brand.700, brand.400, brand.700)"
               />
 
-              {/* Header */}
+              {/* Header — drag handle */}
               <Flex
                 align="center"
                 justify="space-between"
@@ -307,11 +422,15 @@ export default function AIChatWidget() {
                 bg={headerBg}
                 borderBottom="1px solid"
                 borderColor={borderC}
+                cursor="grab"
+                onMouseDown={onMouseDown}
+                onTouchStart={onTouchStart}
+                userSelect="none"
               >
                 <HStack spacing={3}>
                   <Box
-                    w="30px"
-                    h="30px"
+                    w="28px"
+                    h="28px"
                     bg="brand.500"
                     borderRadius="2px"
                     display="flex"
@@ -320,7 +439,7 @@ export default function AIChatWidget() {
                   >
                     <Text
                       fontFamily="heading"
-                      fontSize="xs"
+                      fontSize="10px"
                       fontWeight="900"
                       color="white"
                     >
@@ -329,42 +448,48 @@ export default function AIChatWidget() {
                   </Box>
                   <Box>
                     <Text fontSize="sm" fontWeight="700" color="text-primary">
-                      Stella
+                      Stella AI
                     </Text>
                     <HStack spacing={1}>
                       <Box
-                        w={2}
-                        h={2}
+                        w="6px"
+                        h="6px"
                         bg="green.400"
                         borderRadius="full"
-                        animation="stellaDot 2s infinite"
+                        animation="dot 2s infinite"
                         sx={{
-                          "@keyframes stellaDot": {
+                          "@keyframes dot": {
                             "0%,100%": { opacity: 1 },
                             "50%": { opacity: 0.4 },
                           },
                         }}
                       />
                       <Text fontSize="xs" color={mutedC}>
-                        AI Assistant · Online
+                        Online · Lightyear Engineering
                       </Text>
                     </HStack>
                   </Box>
                 </HStack>
-                <IconButton
-                  aria-label="Close chat"
-                  icon={<CloseIcon />}
-                  size="sm"
-                  variant="ghost"
-                  color={mutedC}
-                  _hover={{ color: "brand.400", bg: "transparent" }}
-                  onClick={() => setOpen(false)}
-                />
+                <HStack spacing={1}>
+                  <Box color={mutedC}>
+                    <DragIcon />
+                  </Box>
+                  <IconButton
+                    aria-label="Close"
+                    icon={<CloseIcon />}
+                    size="sm"
+                    variant="ghost"
+                    color={mutedC}
+                    _hover={{ color: "brand.500", bg: "transparent" }}
+                    onClick={() => setOpen(false)}
+                    data-nodrag="true"
+                  />
+                </HStack>
               </Flex>
 
               {/* Messages */}
               <Box
-                h="340px"
+                h="330px"
                 overflowY="auto"
                 p={4}
                 sx={{
@@ -376,27 +501,25 @@ export default function AIChatWidget() {
                 }}
               >
                 <VStack spacing={3} align="stretch">
-                  {messages.map((msg, i) => (
-                    <Bubble key={i} msg={msg} />
+                  {messages.map((m, i) => (
+                    <Bubble key={i} msg={m} />
                   ))}
-
                   {loading && (
                     <Flex>
                       <Box
-                        w="26px"
-                        h="26px"
+                        w="24px"
+                        h="24px"
                         bg="brand.500"
                         borderRadius="2px"
                         display="flex"
                         alignItems="center"
                         justifyContent="center"
                         mr={2}
-                        mt="2px"
                         flexShrink={0}
                       >
                         <Text
                           fontFamily="heading"
-                          fontSize="10px"
+                          fontSize="9px"
                           fontWeight="900"
                           color="white"
                         >
@@ -414,13 +537,13 @@ export default function AIChatWidget() {
                           {[0, 1, 2].map((i) => (
                             <Box
                               key={i}
-                              w="6px"
-                              h="6px"
+                              w="5px"
+                              h="5px"
                               bg="brand.500"
                               borderRadius="full"
-                              animation={`stellaBounce 1.2s infinite ${i * 0.2}s`}
+                              animation={`bounce 1.2s infinite ${i * 0.2}s`}
                               sx={{
-                                "@keyframes stellaBounce": {
+                                "@keyframes bounce": {
                                   "0%,80%,100%": {
                                     transform: "scale(0)",
                                     opacity: 0.5,
@@ -438,11 +561,11 @@ export default function AIChatWidget() {
                 </VStack>
               </Box>
 
-              {/* Suggestions — shown on first open */}
+              {/* Suggestions */}
               {messages.length <= 1 && (
                 <Box px={4} pb={3}>
                   <Text
-                    fontSize="10px"
+                    fontSize="9px"
                     fontFamily="mono"
                     color={mutedC}
                     letterSpacing="0.12em"
@@ -464,13 +587,14 @@ export default function AIChatWidget() {
                         borderColor={borderC}
                         fontSize="xs"
                         color={mutedC}
-                        transition="all 0.18s"
+                        transition="all 0.15s"
                         _hover={{
-                          bg: suggHover,
-                          color: "brand.400",
+                          bg: headerBg,
+                          color: "brand.500",
                           borderColor: "brand.700",
                         }}
                         onClick={() => send(s)}
+                        data-nodrag="true"
                       >
                         {s}
                       </Box>
@@ -485,6 +609,7 @@ export default function AIChatWidget() {
                 borderTop="1px solid"
                 borderColor={borderC}
                 bg={headerBg}
+                data-nodrag="true"
               >
                 <HStack spacing={2}>
                   <Input
@@ -500,7 +625,7 @@ export default function AIChatWidget() {
                     borderRadius="2px"
                     fontSize="sm"
                     color="text-primary"
-                    _placeholder={{ color: mutedC, fontSize: "sm" }}
+                    _placeholder={{ color: mutedC }}
                     _focus={{ borderColor: "brand.500", boxShadow: "none" }}
                     size="sm"
                     isDisabled={loading}
@@ -512,7 +637,8 @@ export default function AIChatWidget() {
                     variant="gold"
                     isLoading={loading}
                     onClick={() => send()}
-                    minW="34px"
+                    minW="32px"
+                    data-nodrag="true"
                   />
                 </HStack>
                 <Text

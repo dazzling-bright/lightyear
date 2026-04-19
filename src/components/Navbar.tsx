@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -20,6 +22,7 @@ import {
   MenuDivider,
   useColorMode,
   useColorModeValue,
+  Image,
 } from "@chakra-ui/react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -28,10 +31,10 @@ import ColorModeToggle from "./ColorModeToggle";
 const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Who We Are", href: "/who-we-are" },
-  { label: "Experience", href: "/experience" },
   { label: "Services", href: "/services" },
   { label: "Projects", href: "/project-studies" },
   { label: "Calculators", href: "/calculators" },
+  // { label: "Internship", href: "/internship" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -131,9 +134,9 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
   const menuText = useColorModeValue("#4B5563", "#8899AA");
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const h = () => setScrolled(window.scrollY > 40);
+    window.addEventListener("scroll", h, { passive: true });
+    return () => window.removeEventListener("scroll", h);
   }, []);
 
   const isActive = (href: string) =>
@@ -183,57 +186,10 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
           justify="space-between"
           gap={4}
         >
-          {/* ── Logo: Lightyear Engineering ─────────────────────────── */}
-          <Link to="/" style={{ flexShrink: 0 }}>
-            <Flex align="center" gap={3} role="group">
-              <Box w="32px" h="32px" position="relative" flexShrink={0}>
-                <Box
-                  position="absolute"
-                  inset={0}
-                  bg="brand.500"
-                  transform="rotate(45deg)"
-                  borderRadius="2px"
-                  transition="transform 0.3s, background 0.2s"
-                  sx={{
-                    "[role=group]:hover &": {
-                      transform: "rotate(90deg)",
-                      background: "var(--chakra-colors-brand-400)",
-                    },
-                  }}
-                />
-                <Box
-                  position="absolute"
-                  inset="8px"
-                  bg={isDark ? "#080C14" : "white"}
-                  transform="rotate(45deg)"
-                  borderRadius="1px"
-                />
-              </Box>
-              <Box display={{ base: "none", sm: "block" }}>
-                <Text
-                  fontFamily="heading"
-                  fontWeight="700"
-                  fontSize="md"
-                  color={logoColor}
-                  lineHeight="1.15"
-                  whiteSpace="nowrap"
-                >
-                  Lightyear Engineering
-                </Text>
-                <Text
-                  fontFamily="mono"
-                  fontSize="7px"
-                  color="brand.500"
-                  letterSpacing="0.2em"
-                  textTransform="uppercase"
-                >
-                  Consultancy Ltd
-                </Text>
-              </Box>
-            </Flex>
-          </Link>
+        
+          <Image src="/lightyearLogo.jpeg" alt="Lightyear Logo" height={"40px"} objectFit={"cover"}/>
 
-          {/* ── Desktop links (xl+) ──────────────────────────────────── */}
+          {/* Desktop links */}
           <HStack
             as="ul"
             listStyleType="none"
@@ -287,7 +243,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
             ))}
           </HStack>
 
-          {/* ── Right actions ─────────────────────────────────────────── */}
+          {/* Right actions */}
           <HStack
             spacing={2}
             display={{ base: "none", xl: "flex" }}
@@ -313,7 +269,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   whiteSpace="nowrap"
                   rightIcon={<ChevronDown />}
                 >
-                  {profile?.full_name?.split(" ")[0] || "Account"}
+                  {profile?.full_name?.split(" ")[0] || "Admin"}
                 </MenuButton>
                 <MenuList
                   bg={menuBg}
@@ -334,31 +290,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                     px={4}
                     py={2.5}
                   >
-                    🏗️&nbsp; My Dashboard
-                  </MenuItem>
-                  <MenuItem
-                    as={Link}
-                    to="/calculators"
-                    bg="transparent"
-                    fontSize="sm"
-                    color={menuText}
-                    _hover={{ color: "brand.400", bg: "rgba(200,150,62,0.06)" }}
-                    px={4}
-                    py={2.5}
-                  >
-                    🧮&nbsp; Calculators
-                  </MenuItem>
-                  <MenuItem
-                    as={Link}
-                    to="/engineer-calculators"
-                    bg="transparent"
-                    fontSize="sm"
-                    color={menuText}
-                    _hover={{ color: "brand.400", bg: "rgba(200,150,62,0.06)" }}
-                    px={4}
-                    py={2.5}
-                  >
-                    ⚙️&nbsp; Engineer Calcs
+                    🏗️&nbsp; Dashboard
                   </MenuItem>
                   <MenuDivider borderColor={menuBd} my={1} />
                   <MenuItem
@@ -383,16 +315,16 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                 px={5}
                 whiteSpace="nowrap"
               >
-                Get Started →
+                Admin Login
               </Button>
             )}
           </HStack>
 
-          {/* ── Mobile toggle ─────────────────────────────────────────── */}
+          {/* Mobile */}
           <HStack spacing={2} display={{ base: "flex", xl: "none" }}>
             <ColorModeToggle />
             <IconButton
-              aria-label={isOpen ? "Close menu" : "Open menu"}
+              aria-label={isOpen ? "Close" : "Menu"}
               icon={isOpen ? <XIcon /> : <HamburgerIcon />}
               variant="ghost"
               size="sm"
@@ -430,7 +362,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                     textTransform="uppercase"
                     mb={1}
                   >
-                    Signed in as
+                    Admin
                   </Text>
                   <Text
                     fontSize="sm"
@@ -438,13 +370,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                     color={isDark ? "#EEF2F7" : "#111827"}
                   >
                     {profile?.full_name}
-                  </Text>
-                  <Text
-                    fontSize="xs"
-                    color={isDark ? "#8899AA" : "#6B7280"}
-                    textTransform="capitalize"
-                  >
-                    {profile?.role}
                   </Text>
                 </Box>
               )}
@@ -488,43 +413,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                     </Text>
                   </ChakraLink>
                 ))}
-                {/* Engineer calcs — extra mobile link */}
-                <ChakraLink
-                  as={Link}
-                  to="/engineer-calculators"
-                  onClick={onClose}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  py={3.5}
-                  px={4}
-                  fontSize="sm"
-                  fontWeight="600"
-                  letterSpacing="0.08em"
-                  textTransform="uppercase"
-                  whiteSpace="nowrap"
-                  color={
-                    isActive("/engineer-calculators")
-                      ? "brand.400"
-                      : isDark
-                        ? "#C8D6E8"
-                        : "#374151"
-                  }
-                  borderBottom="1px solid"
-                  borderColor={drawerBd}
-                  transition="all 0.2s"
-                  _hover={{
-                    color: "brand.400",
-                    pl: "24px",
-                    bg: "rgba(200,150,62,0.04)",
-                    textDecoration: "none",
-                  }}
-                >
-                  Engineer Calcs
-                  <Text as="span" opacity={0.3} fontSize="xs">
-                    →
-                  </Text>
-                </ChakraLink>
               </VStack>
               <Box mt={6} p={4} border="1px solid" borderColor={drawerBd}>
                 <VStack spacing={2}>
@@ -549,7 +437,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                         w="full"
                         size="sm"
                       >
-                        My Dashboard
+                        Dashboard
                       </Button>
                       <Button
                         variant="ghost_light"
@@ -570,7 +458,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                       w="full"
                       size="sm"
                     >
-                      Sign In / Register
+                      Admin Login
                     </Button>
                   )}
                 </VStack>
@@ -579,7 +467,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
           </DrawerBody>
         </DrawerContent>
       </Drawer>
-
       <Box h="70px" />
     </>
   );
