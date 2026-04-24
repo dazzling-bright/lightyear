@@ -4,19 +4,43 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lightyear Engineering — Construction & Design Consultancy</title>
+
+    <!-- SEO -->
     <meta
       name="description"
       content="Lightyear Engineering Consultancy Ltd — 18+ years of engineering excellence in Nigeria."
     />
-    <link rel="icon" type="image/x-icon" href="/Lightyearfavicon.png" />
-    <link rel="alternate icon" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <meta name="theme-color" content="#080c14" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Lightyear Engineering Consultancy Ltd" />
+    <meta
+      property="og:description"
+      content="18+ years of engineering excellence in Nigeria."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/Lightyearfavicon.png" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Performance: Preload fonts -->
+    <link
+      rel="preload"
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap"
+      as="style"
+    />
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800;900&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Base styles -->
     <style>
       *,
       *::before,
@@ -25,16 +49,51 @@
         margin: 0;
         padding: 0;
       }
+
       html {
         scroll-behavior: smooth;
       }
+
       body {
         background: #080c14;
       }
     </style>
+
+    <!-- 📊 Google Analytics -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-D349RDD0MW"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-D349RDD0MW");
+    </script>
+
+    <!-- 🧠 SEO: Structured Data (Schema.org) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "EngineeringCompany",
+        "name": "Lightyear Engineering Ltd",
+        "description": "Construction and design consultancy with over 18 years of engineering excellence in Nigeria.",
+        "url": "https://lightyear.ng",
+
+        "address": {
+          "@type": "PostalAddress",
+          "addressCountry": "NG"
+        }
+      }
+    </script>
   </head>
+
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+
+    <!-- ⚡ Optimized script loading -->
+    <script type="module" src="/src/main.tsx" defer></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Drawer,
   DrawerOverlay,
@@ -19,27 +19,45 @@ import {
   Divider,
   Link as ChakraLink,
   useColorModeValue,
+  Stepper,
+  Step,
+  StepIndicator,
+  StepNumber,
+  StepTitle,
+  StepDescription,
+  StepStatus,
+  StepSeparator,
+  useSteps,
 } from "@chakra-ui/react";
-import { supabase } from "../lib/supabase";
-import { useAuth } from "../context/AuthContext";
+import emailjs from "@emailjs/browser";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const EMAIL_EDGE_URL =
-  "https://poyztenrzdbkerchqbsr.supabase.co/functions/v1/send-consultation-email";
+// EmailJS configuration
+const EMAILJS_SERVICE_ID = "lightyear_jw2012";
+const EMAILJS_TEMPLATE_ID = "template_7bdc07a";
+const EMAILJS_PUBLIC_KEY = "4SB9C7VIb-FClOgto";
+
 
 const WHATSAPP = "https://wa.me/2347032082725";
-const LINKEDIN = "https://linkedin.com/company/lightyear-engineering";
+// const LINKEDIN = "https://linkedin.com/company/lightyear-engineering";
 const PHONE = "tel:+2347032082725";
-const EMAIL = "mailto:lightyearconsult@gmail.com";
-const STEPS = ["Your Details", "Project Info", "Review & Submit"];
+const EMAIL = "mailto:lightyearconstruct@gmail.com";
+
+const STEPS = [
+  { title: "Step 1", description: "Details" },
+  { title: "Step 2", description: "Project Info" },
+  { title: "Step 3", description: "Review & Submit" },
+];
 
 export default function ConsultationDrawer({ isOpen, onClose }: Props) {
-  const { profile } = useAuth();
+  const { activeStep, setActiveStep } = useSteps({
+    index: 0,
+    count: STEPS.length,
+  });
 
   const drawerBg = useColorModeValue("white", "#0F1929");
   const borderC = useColorModeValue("#E2E8F0", "#1E2E4A");
@@ -69,14 +87,13 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
     mb: 1,
   };
 
-  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
-    full_name: profile?.full_name || "",
-    email: profile?.email || "",
-    phone: profile?.phone || "",
+    full_name: "",
+    email: "",
+    phone: "",
     location: "",
     service_type: "",
     project_type: "",
@@ -97,23 +114,50 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
-    try {
-      // 1. Save to Supabase DB
-      const { error: dbErr } = await supabase
-        .from("consultations")
-        .insert({ ...form, user_id: profile?.id || null });
-      if (dbErr) throw new Error(dbErr.message);
 
-      // 2. Trigger email via Edge Function (non-blocking — don't fail if email fails)
-      fetch(EMAIL_EDGE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      }).catch((e) => console.warn("Email edge fn failed (non-fatal):", e));
+    try {
+      const templateParams = {
+        from_name: form.full_name,
+        from_email: form.email,
+        phone: form.phone || "Not provided",
+        location: form.location || "Not provided",
+        service_type: form.service_type || "Not specified",
+        project_type: form.project_type || "Not specified",
+        budget_range: form.budget_range || "Not specified",
+        timeline: form.timeline || "Not specified",
+        message: form.message,
+        reply_to: form.email,
+
+        // ✅ NEW (dynamic year)
+        current_year: new Date().getFullYear(),
+      };
+
+      const result = await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams,
+        EMAILJS_PUBLIC_KEY,
+      );
 
       setSubmitted(true);
     } catch (err: any) {
-      setError(err.message || "Submission failed. Please contact us directly.");
+      console.error("❌ Email failed:", err);
+
+      let errorMsg = "Failed to send consultation request.";
+
+      if (err?.status) {
+        errorMsg += ` (Status: ${err.status})`;
+      }
+
+      if (err?.text) {
+        errorMsg += ` ${err.text}`;
+      } else if (err?.message) {
+        errorMsg += ` ${err.message}`;
+      }
+
+      errorMsg += " Please try again or contact us directly.";
+
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -122,7 +166,7 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
   const handleClose = () => {
     onClose();
     setTimeout(() => {
-      setStep(0);
+      setActiveStep(0);
       setSubmitted(false);
       setError("");
     }, 400);
@@ -189,12 +233,11 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 mx="auto"
                 mb={2}
               >
-                Thank you, <strong>{form.full_name.split(" ")[0]}</strong>. A
-                confirmation email has been sent to{" "}
-                <strong>{form.email}</strong>.
+                Thank you, <strong>{form.full_name.split(" ")[0]}</strong>. We
+                have received your consultation request.
               </Text>
               <Text fontSize="xs" color={labelC} mb={8}>
-                Our team will be in touch within 1 business day.
+                Our team will be in touch within 1-2 business days.
               </Text>
               <Divider borderColor={borderC} mb={7} />
               <Text
@@ -211,20 +254,20 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 {[
                   {
                     href: WHATSAPP,
-                    label: "💬 WhatsApp — +234 703 208 2725",
+                    label: "💬 WhatsApp: +234 703 208 2725",
                     ext: true,
                   },
                   {
                     href: PHONE,
-                    label: "📞 Call — +234 703 208 2725",
+                    label: "📞 Call: +234 703 208 2725",
                     ext: false,
                   },
                   {
                     href: EMAIL,
-                    label: "✉️ lightyearconsult@gmail.com",
+                    label: "lightyearconsult@gmail.com",
                     ext: false,
                   },
-                  { href: LINKEDIN, label: "🔗 LinkedIn", ext: true },
+                  // { href: LINKEDIN, label: "🔗 LinkedIn", ext: true },
                 ].map((c) => (
                   <ChakraLink
                     key={c.label}
@@ -270,12 +313,12 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                     color: "brand.400",
                     ext: false,
                   },
-                  {
-                    href: LINKEDIN,
-                    label: "🔗 LinkedIn",
-                    color: "blue.400",
-                    ext: true,
-                  },
+                  // {
+                  //   href: LINKEDIN,
+                  //   label: "🔗 LinkedIn",
+                  //   color: "blue.400",
+                  //   ext: true,
+                  // },
                   {
                     href: EMAIL,
                     label: "✉️ Email",
@@ -296,31 +339,34 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 ))}
               </HStack>
 
-              {/* Steps */}
-              <HStack spacing={0} mb={7}>
-                {STEPS.map((label, i) => (
-                  <Box key={label} flex={1}>
-                    <Box
-                      h="2px"
-                      bg={i <= step ? "brand.500" : borderC}
-                      transition="background 0.3s"
-                    />
-                    <Text
-                      fontSize="9px"
-                      fontFamily="mono"
-                      color={i <= step ? "brand.400" : labelC}
-                      letterSpacing="0.08em"
-                      textTransform="uppercase"
-                      mt={1.5}
-                      noOfLines={1}
-                    >
-                      {label}
-                    </Text>
-                  </Box>
-                ))}
-              </HStack>
+              {/* Stepper with step numbers */}
+              <Stepper
+                index={activeStep}
+                mb={7}
+                colorScheme="brand"
+                size={"sm"}
+              >
+                {STEPS.map((step, index) => (
+                  <Step key={index}>
+                    <StepIndicator>
+                      <StepStatus
+                        complete={<StepNumber />}
+                        incomplete={<StepNumber />}
+                        active={<StepNumber />}
+                      />
+                    </StepIndicator>
 
-              {step === 0 && (
+                    <Box flexShrink="0">
+                      <StepTitle>{step.title}</StepTitle>
+                      <StepDescription>{step.description}</StepDescription>
+                    </Box>
+
+                    <StepSeparator />
+                  </Step>
+                ))}
+              </Stepper>
+
+              {activeStep === 0 && (
                 <VStack spacing={4}>
                   <Grid templateColumns="1fr 1fr" gap={4} w="full">
                     <FormControl isRequired>
@@ -367,7 +413,7 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                     variant="gold"
                     w="full"
                     mt={1}
-                    onClick={() => setStep(1)}
+                    onClick={() => setActiveStep(1)}
                     isDisabled={!form.full_name || !form.email}
                   >
                     Continue →
@@ -375,7 +421,7 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 </VStack>
               )}
 
-              {step === 1 && (
+              {activeStep === 1 && (
                 <VStack spacing={4}>
                   <FormControl w="full">
                     <FormLabel {...lS}>Service Needed</FormLabel>
@@ -456,14 +502,14 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                     <Button
                       variant="ghost_light"
                       flex={1}
-                      onClick={() => setStep(0)}
+                      onClick={() => setActiveStep(0)}
                     >
                       ← Back
                     </Button>
                     <Button
                       variant="gold"
                       flex={2}
-                      onClick={() => setStep(2)}
+                      onClick={() => setActiveStep(2)}
                       isDisabled={!form.message}
                     >
                       Review →
@@ -472,7 +518,7 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                 </VStack>
               )}
 
-              {step === 2 && (
+              {activeStep === 2 && (
                 <VStack spacing={0} align="stretch">
                   {error && (
                     <Box
@@ -500,8 +546,8 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                       color="brand.500"
                       letterSpacing="0.08em"
                     >
-                      📧 A confirmation will be sent to{" "}
-                      <strong>{form.email}</strong>
+                      We'll respond to <strong>{form.email}</strong> within 1-2
+                      business days
                     </Text>
                   </Box>
                   {[
@@ -566,7 +612,7 @@ export default function ConsultationDrawer({ isOpen, onClose }: Props) {
                     <Button
                       variant="ghost_light"
                       flex={1}
-                      onClick={() => setStep(1)}
+                      onClick={() => setActiveStep(1)}
                     >
                       ← Edit
                     </Button>

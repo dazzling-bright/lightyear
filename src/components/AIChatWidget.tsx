@@ -1,3 +1,5 @@
+
+
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Box,
@@ -11,20 +13,31 @@ import {
 } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
+import Groq from "groq-sdk";
 
 const MotionBox = motion(Box);
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const EDGE_CHAT_URL = `${SUPABASE_URL}/functions/v1/stella-chat`;
-
-// Hardcoded consultation email edge function URL
-const EMAIL_FN_URL =
-  "https://poyztenrzdbkerchqbsr.supabase.co/functions/v1/send-consultation-email";
+// Groq API configuration - client side!
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY as string;
+const groq = new Groq({
+  apiKey: GROQ_API_KEY,
+  dangerouslyAllowBrowser: true, // Allow browser usage
+});
 
 interface Message {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
 }
+
+const SYSTEM_PROMPT = `You are Stella, Lightyear Engineering's AI assistant. You specialize in:
+- Construction and civil engineering
+- Foundation investigation and geotechnical engineering
+- Project management and pre-construction planning
+- Building materials and costs in Nigeria
+- Permits and regulations in Nigeria
+- Sustainable building practices
+
+Keep responses concise (under 150 words), friendly, and professional. Use plain text (no markdown). If you don't know something, suggest contacting Lightyear directly at lightyearconsult@gmail.com or +234 703 208 2725.`;
 
 const SUGGESTIONS = [
   "How much to build a 3-bedroom house in Abuja?",
@@ -153,7 +166,6 @@ export default function AIChatWidget() {
 
   // ── Drag state ──────────────────────────────────────────────────────────────
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  // hasDragged: true only if mouse moved beyond threshold during this press
   const hasDragged = useRef(false);
   const isPressing = useRef(false);
   const pressStart = useRef<{
@@ -185,7 +197,6 @@ export default function AIChatWidget() {
       if (!isPressing.current || !pressStart.current) return;
       const dx = e.clientX - pressStart.current.mx;
       const dy = e.clientY - pressStart.current.my;
-      // Only start moving after threshold
       if (!hasDragged.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
       hasDragged.current = true;
       setPos({ x: pressStart.current.px + dx, y: pressStart.current.py + dy });
@@ -199,7 +210,7 @@ export default function AIChatWidget() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, []); // runs once — pressStart and hasDragged are refs
+  }, []);
 
   // Touch drag handlers
   const onTouchStart = useCallback(
@@ -226,7 +237,7 @@ export default function AIChatWidget() {
       const dy = t.clientY - pressStart.current.my;
       if (!hasDragged.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
       hasDragged.current = true;
-      e.preventDefault(); // stop scroll while dragging widget
+      e.preventDefault();
       setPos({ x: pressStart.current.px + dx, y: pressStart.current.py + dy });
     };
     const onEnd = () => {
@@ -261,25 +272,31 @@ export default function AIChatWidget() {
     const content = (text ?? input).trim();
     if (!content || loading) return;
     setInput("");
-    const updated: Message[] = [...messages, { role: "user", content }];
-    setMessages(updated);
+
+    const userMessage: Message = { role: "user", content };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setLoading(true);
 
     try {
-      const res = await fetch(EDGE_CHAT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updated.slice(-20) }),
+      // Call Groq directly from client-side!
+      const chatCompletion = await groq.chat.completions.create({
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          ...updatedMessages.slice(-10), // Last 10 messages for context
+        ],
+        model: "llama-3.3-70b-versatile", // or "mixtral-8x7b-32768"
+        temperature: 0.7,
+        max_tokens: 300,
+        top_p: 1,
+        stream: false,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply },
-      ]);
+
+      const reply =
+        chatCompletion.choices[0]?.message?.content ||
+        "I apologize, but I couldn't generate a response. Please try again or contact us directly at lightyearconsult@gmail.com";
+
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
     } catch (err: any) {
       console.error("Stella error:", err);
       setMessages((prev) => [
@@ -295,7 +312,6 @@ export default function AIChatWidget() {
     }
   };
 
-  // Handle button click — only opens if we didn't drag
   const handleButtonClick = useCallback(() => {
     if (!hasDragged.current) setOpen(true);
   }, []);
@@ -324,7 +340,6 @@ export default function AIChatWidget() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: "spring", stiffness: 280, damping: 22 }}
-            // Cursor: grab only when not actively clicking
             cursor={
               isPressing.current && hasDragged.current ? "grabbing" : "grab"
             }
@@ -333,7 +348,7 @@ export default function AIChatWidget() {
           >
             <Box
               as="button"
-              onClick={handleButtonClick} // ← uses ref to check if it was a drag
+              onClick={handleButtonClick}
               w="56px"
               h="56px"
               bg="brand.500"
@@ -413,7 +428,7 @@ export default function AIChatWidget() {
                 bgGradient="linear(to-r, brand.700, brand.400, brand.700)"
               />
 
-              {/* Header — drag handle */}
+              {/* Header */}
               <Flex
                 align="center"
                 justify="space-between"

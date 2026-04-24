@@ -208,10 +208,11 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   px={3}
                   py={2}
                   fontSize="xs"
-                  fontWeight="600"
+                  fontWeight="500"
                   letterSpacing="0.08em"
                   textTransform="uppercase"
                   whiteSpace="nowrap"
+                  borderBottom={"1.5px solid transparent"}
                   color={isActive(link.href) ? "brand.400" : linkColor}
                   transition="color 0.2s"
                   _hover={{
