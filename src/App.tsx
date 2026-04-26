@@ -22,12 +22,12 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AIChatWidget from "./components/AIChatWidget";
 import ConsultationDrawer from "./components/ConsultationDrawer";
+import ProjectsSection from "./components/ProjectsSection";
 
 const Home = lazy(() => import("./pages/Home"));
 const WhoWeAre = lazy(() => import("./pages/WhoWeAre"));
 const Experience = lazy(() => import("./pages/Experience"));
 const ServicesPage = lazy(() => import("./pages/Services"));
-const ProjectStudies = lazy(() => import("./pages/ProjectStudies"));
 const Contact = lazy(() => import("./pages/Contact"));
 const LoginPage = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -145,7 +145,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/project-studies",
-        element: <ProjectStudies />,
+        element: <ProjectsSection />,
         errorElement: <ErrorBoundary />,
       },
       {

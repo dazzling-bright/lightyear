@@ -130,7 +130,7 @@ export default function HeroSection({ onOpenConsultation }: Props) {
         maxW="1280px"
         mx="auto"
         px={{ base: 5, md: 8 }}
-        py={{ base: 20, md: 32 }}
+        py={{ base: 10, md: 20 }}
         position="relative"
         zIndex={1}
         w="full"
@@ -192,7 +192,7 @@ export default function HeroSection({ onOpenConsultation }: Props) {
             fontWeight="900"
             fontSize={{ base: "4xl", md: "6xl", lg: "7xl" }}
             lineHeight={{ base: "1.1", md: "1.05" }}
-            // Hard white — never use semantic token here as hero is always dark
+
             color="#EEF2F7"
             maxW="700px"
           >

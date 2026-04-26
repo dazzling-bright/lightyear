@@ -136,7 +136,7 @@ export default function ServicesPage() {
             </Text>
           </HStack>
           <Text as="h1" fontFamily="heading" fontWeight="900"
-            fontSize={{ base: '4xl', md: '6xl' }} color="stellar.text" lineHeight="1.1" maxW="700px">
+            fontSize={{ base: '4xl', md: '6xl' }} color="white" lineHeight="1.1" maxW="700px">
             Our <Box as="span" color="brand.400">Services</Box>
           </Text>
           <Text fontSize={{ base: 'md', md: 'lg' }} color="stellar.muted" mt={5} maxW="560px" lineHeight="1.8">
