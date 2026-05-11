@@ -204,8 +204,8 @@ export default function CtaSection({ onOpenConsultation }: { onOpenConsultation:
               <VStack align="start" spacing={5} mb={8}>
                 {[
                   { icon: <PhoneIcon />, label: 'Call Us', value: '+234 803 885 0854' },
-                  { icon: <MailIcon />, label: 'Email', value: 'info@lightyear.ng' },
-                  { icon: <ClockIcon />, label: 'Business Hours', value: 'Mon – Fri: 8:00 AM – 6:00 PM' },
+                  { icon: <MailIcon />, label: 'Email', value:'lightyearconstruct@gmail.com' },
+                  { icon: <ClockIcon />, label: 'Business Hours', value: 'Mon – Fri: 8:00 AM – 5:00 PM (GMT +1)' },
                 ].map(item => (
                   <HStack key={item.label} spacing={4} align="start">
                     <Box
