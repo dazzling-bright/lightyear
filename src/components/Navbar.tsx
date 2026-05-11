@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -19,22 +17,37 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
-  MenuDivider,
   useColorMode,
   useColorModeValue,
   Image,
 } from "@chakra-ui/react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import ColorModeToggle from "./ColorModeToggle";
+
+// Services list for dropdown (no categories, just flat list)
+const SERVICES_DROPDOWN = [
+  { label: "Project Studies", href: "/services#project-studies" },
+  { label: "Feasibility Study", href: "/services#feasibility-study" },
+  { label: "Design Review", href: "/services#design-review" },
+  {
+    label: "Structural Engineering Drawing",
+    href: "/services#structural-engineering",
+  },
+  {
+    label: "Mechanical and Electrical Design",
+    href: "/services#mechanical-electrical",
+  },
+  { label: "Civil Engineering Design", href: "/services#civil-engineering" },
+  { label: "Complete Working Drawing", href: "/services#working-drawing" },
+  { label: "Residency / Supervision", href: "/services#supervision" },
+];
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Who We Are", href: "/who-we-are" },
-  { label: "Services", href: "/services" },
+  { label: "Services", href: "/services", hasDropdown: true },
   { label: "Projects", href: "/project-studies" },
   { label: "Calculators", href: "/calculators" },
-  // { label: "Internship", href: "/internship" },
   { label: "Contact", href: "/contact" },
 ];
 
@@ -69,6 +82,7 @@ const HamburgerIcon = () => (
     />
   </svg>
 );
+
 const XIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
     <line
@@ -91,6 +105,7 @@ const XIcon = () => (
     />
   </svg>
 );
+
 const ChevronDown = () => (
   <svg
     width="11"
@@ -113,25 +128,25 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
   const { colorMode } = useColorMode();
   const isDark = colorMode === "dark";
 
+  // Dynamic navbar background based on scroll and color mode
   const navBg = useColorModeValue(
-    scrolled ? "rgba(255,255,255,0.97)" : "rgba(255,255,255,0.88)",
-    scrolled ? "rgba(8,12,20,0.97)" : "rgba(8,12,20,0.78)",
+    scrolled ? "rgba(255,255,255,0.98)" : "rgba(255,255,255,0.95)",
+    scrolled ? "rgba(8,12,20,0.97)" : "rgba(8,12,20,0.88)",
   );
-  const borderC = useColorModeValue(
+
+  const borderColor = useColorModeValue(
     scrolled ? "#E2E8F0" : "rgba(200,150,62,0.15)",
     scrolled ? "#1E2E4A" : "rgba(200,150,62,0.12)",
   );
-  const linkColor = useColorModeValue("#4B5563", "#8899AA");
-  const logoColor = useColorModeValue("#111827", "#EEF2F7");
-  const drawerBg = useColorModeValue("white", "#0F1929");
-  const drawerBd = useColorModeValue("#E2E8F0", "#1E2E4A");
+
+  const linkColor = useColorModeValue("#374151", "#8899AA");
+  const linkHoverColor = useColorModeValue("#111827", "#EEF2F7");
   const menuBg = useColorModeValue("white", "#0F1929");
-  const menuBd = useColorModeValue("#E2E8F0", "#1E2E4A");
-  const menuText = useColorModeValue("#4B5563", "#8899AA");
+  const menuBorder = useColorModeValue("#E2E8F0", "#1E2E4A");
+  const menuItemText = useColorModeValue("#374151", "#8899AA");
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 40);
@@ -139,14 +154,25 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const isActive = (href: string) =>
-    href === "/"
-      ? location.pathname === "/"
-      : location.pathname.startsWith(href);
+  const isActive = (href: string) => {
+    if (href === "/") return location.pathname === "/";
+    if (href === "/services") return location.pathname === "/services";
+    return location.pathname.startsWith(href);
+  };
 
-  const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
+  const handleServiceClick = (href: string) => {
+    navigate(href);
+    if (location.pathname === "/services") {
+      const elementId = href.split("#")[1];
+      if (elementId) {
+        setTimeout(() => {
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 100);
+      }
+    }
   };
 
   return (
@@ -161,7 +187,7 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
         bg={navBg}
         backdropFilter="blur(18px)"
         borderBottom="1px solid"
-        borderColor={borderC}
+        borderColor={borderColor}
         boxShadow={
           scrolled
             ? isDark
@@ -186,8 +212,37 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
           justify="space-between"
           gap={4}
         >
-        
-          <Image src="/lightyearLogo.jpeg" alt="Lightyear Logo" height={"40px"} objectFit={"cover"}/>
+          {/* Logo with curved edges and proper blending */}
+          <Box position="relative" height="44px" width="auto">
+            <Box
+              position="relative"
+              height="44px"
+              width="auto"
+              borderRadius="xl"
+              overflow="hidden"
+              bg={isDark ? "rgba(15,25,41,0.8)" : "white"}
+              boxShadow={
+                isDark
+                  ? "0 0 0 1px rgba(242,101,34,0.2)"
+                  : "0 1px 3px rgba(0,0,0,0.1)"
+              }
+              px={2}
+              py={1}
+              display="inline-flex"
+              alignItems="center"
+              justifyContent="center"
+              transition="all 0.3s ease"
+            >
+              <Image
+                src="/lightyearLogo.jpeg"
+                alt="Lightyear Logo"
+                height="32px"
+                width="auto"
+                objectFit="contain"
+                style={{ borderRadius: "8px" }}
+              />
+            </Box>
+          </Box>
 
           {/* Desktop links */}
           <HStack
@@ -201,45 +256,98 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
           >
             {NAV_LINKS.map((link) => (
               <Box as="li" key={link.href}>
-                <ChakraLink
-                  as={Link}
-                  to={link.href}
-                  display="block"
-                  px={3}
-                  py={2}
-                  fontSize="xs"
-                  fontWeight="500"
-                  letterSpacing="0.08em"
-                  textTransform="uppercase"
-                  whiteSpace="nowrap"
-                  borderBottom={"1.5px solid transparent"}
-                  color={isActive(link.href) ? "brand.400" : linkColor}
-                  transition="color 0.2s"
-                  _hover={{
-                    color: isDark ? "#EEF2F7" : "#111827",
-                    textDecoration: "none",
-                  }}
-                  position="relative"
-                  sx={{
-                    "&::after": {
-                      content: '""',
-                      position: "absolute",
-                      bottom: "0",
-                      left: "12px",
-                      right: "12px",
-                      height: "1.5px",
-                      background: "var(--chakra-colors-brand-500)",
-                      transform: isActive(link.href)
-                        ? "scaleX(1)"
-                        : "scaleX(0)",
-                      transformOrigin: "left center",
-                      transition: "transform 0.25s ease",
-                    },
-                    "&:hover::after": { transform: "scaleX(1)" },
-                  }}
-                >
-                  {link.label}
-                </ChakraLink>
+                {link.hasDropdown ? (
+                  <Menu>
+                    <MenuButton
+                      as={Button}
+                      variant="ghost"
+                      px={3}
+                      py={2}
+                      fontSize="xs"
+                      fontWeight="500"
+                      letterSpacing="0.08em"
+                      textTransform="uppercase"
+                      whiteSpace="nowrap"
+                      color={isActive(link.href) ? "brand.500" : linkColor}
+                      _hover={{
+                        color: linkHoverColor,
+                        bg: "transparent",
+                      }}
+                      rightIcon={<ChevronDown />}
+                      minW="auto"
+                    >
+                      {link.label}
+                    </MenuButton>
+                    <MenuList
+                      bg={menuBg}
+                      border="1px solid"
+                      borderColor={menuBorder}
+                      borderRadius="lg"
+                      boxShadow="0 16px 40px rgba(0,0,0,0.15)"
+                      minW="260px"
+                      py={2}
+                    >
+                      {SERVICES_DROPDOWN.map((service) => (
+                        <MenuItem
+                          key={service.label}
+                          onClick={() => handleServiceClick(service.href)}
+                          bg="transparent"
+                          fontSize="sm"
+                          fontWeight="500"
+                          color={menuItemText}
+                          _hover={{
+                            color: "brand.500",
+                            bg: "rgba(242,101,34,0.06)",
+                          }}
+                          px={4}
+                          py={2.5}
+                        >
+                          {service.label}
+                        </MenuItem>
+                      ))}
+                    </MenuList>
+                  </Menu>
+                ) : (
+                  <ChakraLink
+                    as={Link}
+                    to={link.href}
+                    display="block"
+                    px={3}
+                    py={2}
+                    fontSize="xs"
+                    fontWeight="500"
+                    letterSpacing="0.08em"
+                    textTransform="uppercase"
+                    whiteSpace="nowrap"
+                    borderBottom="1.5px solid transparent"
+                    color={isActive(link.href) ? "brand.500" : linkColor}
+                    transition="color 0.2s"
+                    _hover={{
+                      color: linkHoverColor,
+                      textDecoration: "none",
+                    }}
+                    position="relative"
+                    sx={{
+                      "&::after": {
+                        content: '""',
+                        position: "absolute",
+                        bottom: "0",
+                        left: "12px",
+                        right: "12px",
+                        height: "1.5px",
+                        background: "brand.500",
+                        transform: isActive(link.href)
+                          ? "scaleX(1)"
+                          : "scaleX(0)",
+                        transformOrigin: "left center",
+                        transition: "transform 0.25s ease",
+                      },
+                      "&:hover::after": { transform: "scaleX(1)" },
+                    }}
+                  >
+                    {link.label}
+                  </ChakraLink>
+                )}
               </Box>
             ))}
           </HStack>
@@ -260,65 +368,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
             >
               Book Consultation
             </Button>
-            {user ? (
-              <Menu>
-                <MenuButton
-                  as={Button}
-                  variant="gold"
-                  size="sm"
-                  px={4}
-                  whiteSpace="nowrap"
-                  rightIcon={<ChevronDown />}
-                >
-                  {profile?.full_name?.split(" ")[0] || "Admin"}
-                </MenuButton>
-                <MenuList
-                  bg={menuBg}
-                  border="1px solid"
-                  borderColor={menuBd}
-                  borderRadius="2px"
-                  boxShadow="0 16px 40px rgba(0,0,0,0.15)"
-                  minW="190px"
-                  py={2}
-                >
-                  <MenuItem
-                    as={Link}
-                    to="/dashboard"
-                    bg="transparent"
-                    fontSize="sm"
-                    color={menuText}
-                    _hover={{ color: "brand.400", bg: "rgba(200,150,62,0.06)" }}
-                    px={4}
-                    py={2.5}
-                  >
-                    🏗️&nbsp; Dashboard
-                  </MenuItem>
-                  <MenuDivider borderColor={menuBd} my={1} />
-                  <MenuItem
-                    bg="transparent"
-                    fontSize="sm"
-                    color="red.400"
-                    _hover={{ bg: "rgba(239,68,68,0.06)" }}
-                    px={4}
-                    py={2.5}
-                    onClick={handleSignOut}
-                  >
-                    Sign Out
-                  </MenuItem>
-                </MenuList>
-              </Menu>
-            ) : (
-              <Button
-                as={Link}
-                to="/login"
-                variant="gold"
-                size="sm"
-                px={5}
-                whiteSpace="nowrap"
-              >
-                Admin Login
-              </Button>
-            )}
           </HStack>
 
           {/* Mobile */}
@@ -329,8 +378,8 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
               icon={isOpen ? <XIcon /> : <HamburgerIcon />}
               variant="ghost"
               size="sm"
-              color={isDark ? "#EEF2F7" : "#374151"}
-              _hover={{ bg: "rgba(200,150,62,0.1)", color: "brand.400" }}
+              color={useColorModeValue("#374151", "#C8D6E8")}
+              _hover={{ bg: "rgba(242,101,34,0.1)", color: "brand.500" }}
               onClick={isOpen ? onClose : onOpen}
             />
           </HStack>
@@ -339,83 +388,88 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
 
       {/* Mobile drawer */}
       <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="xs">
-        <DrawerOverlay backdropFilter="blur(8px)" bg="rgba(8,12,20,0.65)" />
+        <DrawerOverlay
+          backdropFilter="blur(8px)"
+          bg={useColorModeValue("rgba(0,0,0,0.4)", "rgba(8,12,20,0.65)")}
+        />
         <DrawerContent
-          bg={drawerBg}
+          bg={useColorModeValue("white", "#0F1929")}
           borderLeft="1px solid"
-          borderColor={drawerBd}
+          borderColor={useColorModeValue("#E2E8F0", "#1E2E4A")}
         >
           <DrawerBody p={0}>
             <Box pt="82px" pb={8} px={6}>
-              {user && (
-                <Box
-                  mb={5}
-                  p={4}
-                  border="1px solid"
-                  borderColor={drawerBd}
-                  bg={isDark ? "#141F33" : "#F8FAFC"}
-                >
-                  <Text
-                    fontSize="xs"
-                    fontFamily="mono"
-                    color="brand.500"
-                    letterSpacing="0.12em"
-                    textTransform="uppercase"
-                    mb={1}
-                  >
-                    Admin
-                  </Text>
-                  <Text
-                    fontSize="sm"
-                    fontWeight="600"
-                    color={isDark ? "#EEF2F7" : "#111827"}
-                  >
-                    {profile?.full_name}
-                  </Text>
-                </Box>
-              )}
               <VStack align="stretch" spacing={0}>
                 {NAV_LINKS.map((link) => (
-                  <ChakraLink
-                    key={link.href}
-                    as={Link}
-                    to={link.href}
-                    onClick={onClose}
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    py={3.5}
-                    px={4}
-                    fontSize="sm"
-                    fontWeight="600"
-                    letterSpacing="0.08em"
-                    textTransform="uppercase"
-                    whiteSpace="nowrap"
-                    color={
-                      isActive(link.href)
-                        ? "brand.400"
-                        : isDark
-                          ? "#C8D6E8"
-                          : "#374151"
-                    }
-                    borderBottom="1px solid"
-                    borderColor={drawerBd}
-                    transition="all 0.2s"
-                    _hover={{
-                      color: "brand.400",
-                      pl: "24px",
-                      bg: "rgba(200,150,62,0.04)",
-                      textDecoration: "none",
-                    }}
-                  >
-                    {link.label}
-                    <Text as="span" opacity={0.3} fontSize="xs">
-                      →
-                    </Text>
-                  </ChakraLink>
+                  <Box key={link.href}>
+                    <ChakraLink
+                      as={Link}
+                      to={link.href}
+                      onClick={onClose}
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="space-between"
+                      py={3.5}
+                      px={4}
+                      fontSize="sm"
+                      fontWeight="600"
+                      letterSpacing="0.08em"
+                      textTransform="uppercase"
+                      whiteSpace="nowrap"
+                      color={
+                        isActive(link.href)
+                          ? "brand.500"
+                          : useColorModeValue("#374151", "#C8D6E8")
+                      }
+                      borderBottom="1px solid"
+                      borderColor={useColorModeValue("#E2E8F0", "#1E2E4A")}
+                      transition="all 0.2s"
+                      _hover={{
+                        color: "brand.500",
+                        pl: "24px",
+                        bg: "rgba(242,101,34,0.04)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      {link.label}
+                      <Text as="span" opacity={0.3} fontSize="xs">
+                        →
+                      </Text>
+                    </ChakraLink>
+                    {/* Show services sub-items in mobile drawer */}
+                    {link.hasDropdown && (
+                      <Box pl={6} pr={4} pb={2}>
+                        {SERVICES_DROPDOWN.map((service) => (
+                          <ChakraLink
+                            key={service.label}
+                            as={Link}
+                            to={service.href}
+                            onClick={onClose}
+                            display="block"
+                            py={2}
+                            px={3}
+                            fontSize="xs"
+                            color={useColorModeValue("#4B5563", "#8899AA")}
+                            _hover={{
+                              color: "brand.500",
+                              bg: "rgba(242,101,34,0.04)",
+                            }}
+                            borderRadius="md"
+                          >
+                            {service.label}
+                          </ChakraLink>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
                 ))}
               </VStack>
-              <Box mt={6} p={4} border="1px solid" borderColor={drawerBd}>
+              <Box
+                mt={6}
+                p={4}
+                border="1px solid"
+                borderColor={useColorModeValue("#E2E8F0", "#1E2E4A")}
+              >
                 <VStack spacing={2}>
                   <Button
                     variant="gold"
@@ -428,40 +482,6 @@ export default function Navbar({ onOpenConsultation }: NavbarProps) {
                   >
                     Book Consultation
                   </Button>
-                  {user ? (
-                    <>
-                      <Button
-                        as={Link}
-                        to="/dashboard"
-                        onClick={onClose}
-                        variant="ghost_light"
-                        w="full"
-                        size="sm"
-                      >
-                        Dashboard
-                      </Button>
-                      <Button
-                        variant="ghost_light"
-                        w="full"
-                        size="sm"
-                        color="red.400"
-                        onClick={handleSignOut}
-                      >
-                        Sign Out
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      as={Link}
-                      to="/login"
-                      onClick={onClose}
-                      variant="ghost_light"
-                      w="full"
-                      size="sm"
-                    >
-                      Admin Login
-                    </Button>
-                  )}
                 </VStack>
               </Box>
             </Box>
